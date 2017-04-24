@@ -40,15 +40,9 @@ def main():
                 TYPE = 'trade_teach'
             else:
                 TYPE = 'qa'
-            unhelpful_pID = []
-            unfelpful_count = []
             percent = []
-            unhelpful_data = []
             result = []         
             for i in unhelpful_results:
-                unhelpful_data.append(i[:])
-                unhelpful_pID.append(str(i[0]))
-                unfelpful_count.append(i[1])
                 per = round(100*(i[1]/all_dict[str(i[0])][1]),2)
                 percent.append(per)
                 url = 'https://www.qnap.com/en/how-to/%s/con_show.php?cid=%s' % (each, str(i[0]))
