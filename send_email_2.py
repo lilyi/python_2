@@ -20,8 +20,10 @@ COMMASPACE = ', '
 unhelpful_percent.main()
 
 def main():
-    sender = 'QNAP Marketing'
-    recipients = ['evenlo@qnap.com', 'lilyli@qnap.com']   
+    sender = 'lilyli@qnap.com'
+    username = 'lilyli@qnap.com'
+    password = 'qnaplily07'
+    recipients = ['lilyli@qnap.com', 'lily60622@gmail.com']   
     outer = MIMEMultipart()
     outer['Subject'] = 'Top10 unhelpful Tutorial & FAQ'
     outer['To'] = COMMASPACE.join(recipients)
@@ -30,7 +32,7 @@ def main():
     body = """
     Hi,
     
-    Here are the top10 of FAQ and Tutorial unhelpful pages.
+    Here are the top10s of FAQ and Tutorial pages.
     FYI.
     
     Best regards,
@@ -59,7 +61,10 @@ def main():
 
     # Send the email
     try:
-        with smtplib.SMTP('mail5.qnappm.info') as s:
+        with smtplib.SMTP('smtp.gmail.com:587') as s:
+            s.ehlo()
+            s.starttls()
+            s.login(username,password)
             s.sendmail(sender, recipients, composed)
             s.close()
         print("Email sent!")
