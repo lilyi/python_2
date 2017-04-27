@@ -5,10 +5,12 @@ Created on Tue Apr 18 15:52:41 2017
 @author: Lily
 """
 
-
+import os
 import MySQLdb
 import statistics
 import csv
+
+file_path = os.path.dirname(__file__)
 
 def main():
     type_name = ['tutorial', 'faq']
@@ -53,7 +55,7 @@ def main():
                 title_result = cursor.fetchall()
                 result.append([str(title_result[0][0]), url, per, all_dict[str(i[0])][1]])
             top10 = sorted(result, key = lambda x : (x[2], x[3]), reverse=True)[:10]
-            with open('unhelpful_%s.csv' % each, 'w', newline='') as csvfile:
+            with open('%s/unhelpful_%s.csv' % (file_path, each), 'w', newline='') as csvfile:
                 writer = csv.writer(csvfile)
                 writer.writerow(['title', 'page','unhelpful (%)', 'total_votes'])
                 writer.writerows(top10)
@@ -61,6 +63,7 @@ def main():
             db.close()
             db2.close()
             print('Saved!')
+#            print(os.path.dirname(__file__))
         except MySQLdb.Error as e:
             print ("Error %d: %s" % (e.args[0], e.args[1]))
   
