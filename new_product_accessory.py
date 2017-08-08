@@ -48,4 +48,9 @@ except MySQLdb.Error as e:
         db.rollback()
 db.close()
 
+#==============================================================================
+# INSERT INTO def (catid, title, page, publish) 
+# SELECT catid, title, 'page','yes' from `abc`
+#==============================================================================
+
 
