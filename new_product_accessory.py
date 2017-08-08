@@ -30,13 +30,14 @@ cursor = db.cursor()
 cursor.execute(sql)
 product_accessory = cursor.fetchall()
 db.close()
+
 try:
     db = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas")
     cursor = db.cursor()
     for each_product in product_accessory:
         published_date = time.mktime(datetime.datetime.strptime(str(each_product[2]), "%Y-%m-%d").timetuple())
     #    print(published_date)    
-        sql = "REPLACE INTO NEW_PRODUCT_ACCESSORY(sku, \
+        sql = "INSERT IGNORE INTO NEW_PRODUCT_ACCESSORY(sku, \
         image, published_at, created_at, updated_at, deleted_at)\
         VALUES ('{}', '{}', '{}', '{}', '{}', '{}')".format(str(each_product[0]), str(each_product[1]), int(published_date), int(time.time()), int(time.time()), "0")
     #    print(sql)
@@ -48,16 +49,3 @@ except MySQLdb.Error as e:
 db.close()
 
 
-sql = "INSERT INTO NEW_PRODUCT_ACCESSORY(sku, image, published_at, created_at, updated_at, deleted_at)\
-    VALUES ('{}', '{}', '{}', '{}', '{}', '{}') \
-    SELECT '{}', '{}' FROM `NEW_PRODUCT_ACCESSORY`\
-    WHERE NOT EXISTS(SELECT 1 FROM `NEW_PRODUCT_ACCESSORY` WHERE `sku` = '{}' AND `image` = '{}') LIMIT 1"\
-                   .format(str(each_product[0]), str(each_product[1]), int(published_date), int(time.time()), \
-                           int(time.time()), "0", str(each_product[0]), str(each_product[1]), str(each_product[0]), str(each_product[1]))
-           
-
-INSERT INTO `trip` (`user`, `country`) 
-SELECT 'tony', 'US' FROM DUAL
-WHERE NOT EXISTS (
-  SELECT 1 FROM `trip` WHERE `user` = "tony" AND `country` = "US" LIMIT 1
-);
