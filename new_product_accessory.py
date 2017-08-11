@@ -5,7 +5,7 @@ Created on Tue Aug  8 10:57:25 2017
 @author: Lily
 """
 
-import os, MySQLdb, time, httplib2, webbrowser, datetime
+import os, MySQLdb, time, datetime
 
 #file_path = os.path.dirname(__file__)
 A = "SP-1BAY-STAND-SILVER"
@@ -17,14 +17,14 @@ sql = "INSERT INTO NEW_PRODUCT_ACCESSORY(sku, \
     image, published_at, created_at, updated_at, deleted_at)\
     VALUES ('{}', '{}', '{}', '{}', '{}', '{}')".format(str(A), str(B), int(time.time()), int(time.time()), int(time.time()), "0")
 # REPLACE can be INSERT
-cursor.execute(sql)   
+cursor.execute(sql)
 db.commit()
 db.close()
 
 # get DB data
 #db = MySQLdb.connect(host="10.8.2.125", user=" ", passwd=" ", db="yen_nas", charset='utf8')
 
-# fetch product as a table 
+# fetch product as a table
 db = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
 sql = "SELECT `product_id`, `model`, `image`, `date_available` FROM `product`"
 cursor = db.cursor()
@@ -37,21 +37,25 @@ try:
     cursor = db.cursor()
     for each_product in product_accessory:
         published_date = time.mktime(datetime.datetime.strptime(str(each_product[3]), "%Y-%m-%d").timetuple())
-    #    print(published_date)    
-        sql = "INSERT IGNORE INTO NEW_PRODUCT_ACCESSORY(sku, \
+    #    print(published_date)
+#        sql = "INSERT IGNORE INTO NEW_PRODUCT_ACCESSORY(sku, \
+#        image, published_at, created_at, updated_at, deleted_at)\
+#        VALUES ('{}', '{}', '{}', '{}', '{}', '{}')".format(str(each_product[1]), str(each_product[2]), int(published_date), int(time.time()), int(time.time()), "0")
+        sql = "INSERT INTO NEW_PRODUCT_ACCESSORY(sku, \
         image, published_at, created_at, updated_at, deleted_at)\
-        VALUES ('{}', '{}', '{}', '{}', '{}', '{}')".format(str(each_product[1]), str(each_product[2]), int(published_date), int(time.time()), int(time.time()), "0")
+        VALUES ('{}', '{}', '{}', '{}', '{}', '{}') ON DUPLICATE KEY UPDATE image='{}', updated_at='{}'".format(str(each_product[1]), str(each_product[2]), int(published_date), int(time.time()), int(time.time()), "0", str(each_product[2]), int(time.time()))
+
     #    print(sql)
-        cursor.execute(sql)   
+        cursor.execute(sql)
         db.commit()
-        
+
 except MySQLdb.Error as e:
         print ("Error %d: %s" % (e.args[0], e.args[1]))
         db.rollback()
 db.close()
 
 #==============================================================================
-# INSERT INTO def (catid, title, page, publish) 
+# INSERT INTO def (catid, title, page, publish)
 # SELECT catid, title, 'page','yes' from `abc`
 # 一次 query 多筆和每個迴圈都多 query 一次
 #==============================================================================
@@ -72,13 +76,13 @@ try:
     cursor2 = db2.cursor()
     for each_product in product_accessory:
         sql2 = "SELECT `language_id`, `name`, `description` FROM `product_description` WHERE `product_id` = {}".format(each_product[0])
-        cursor2.execute(sql2)   
+        cursor2.execute(sql2)
 #        print(sql2)
         results = cursor2.fetchall()
         sql3 = "SELECT `id` FROM `new_product_accessory` WHERE `sku` = '{}' AND `image` = '{}'".format(each_product[1], each_product[2])
         cursor1.execute(sql3)
 #        print(sql3)
-        accessory_id = cursor1.fetchall()        
+        accessory_id = cursor1.fetchall()
         for each_lan in results:
             sql4 = "SELECT `language_id`, `code` FROM `language` WHERE `language_id` = {}".format(each_lan[0])
             cursor2.execute(sql4)
@@ -93,7 +97,7 @@ try:
                 VALUES ("{}", "{}", "{}", "{}", "{}", "{}", "{}")'.format(accessory_id[0][0], str(locale), str(each_lan[1]), str(each_lan[2]), int(time.time()), int(time.time()), "0")
 #            print(sql5)
             cursor1.execute(sql5)
-            
+
             db1.commit()
 except MySQLdb.Error as e:
         print ("Error %d: %s" % (e.args[0], e.args[1]))
@@ -146,10 +150,10 @@ try:
             print("HERE!6")
             each_nas = NAS_name[0][0].strip().lower()
             #
-            
+
             #
             if len(NAS_name) == 0: # 基本上不會進來這個條件下
-                CHECK.append(each_cate[0]) 
+                CHECK.append(each_cate[0])
                 NAS_name = ''
                 sql5 = "SELECT `ItemID` FROM `product_items` WHERE `temp_name` = '{}'".format(NAS_name)
 #            elif NAS_name[0][0][-1] == ' ':
@@ -206,7 +210,7 @@ Accessory = []
 db2 = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
 cursor2 = db2.cursor()
 for each_TS in TS:
-    
+
     sql = "SELECT `category_id` FROM `category_description` WHERE `name` = '{}'".format(each_TS.upper())
     cursor2.execute(sql)
     resu = cursor2.fetchall()
