@@ -31,23 +31,54 @@ cursor = db.cursor()
 cursor.execute(sql)
 product_accessory = cursor.fetchall()
 db.close()
-
+#A = "SS"
+try:
+    db = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
+    cursor = db.cursor()
+    sql = '''
+        CREATE TABLE IF NOT EXISTS `new_product_accessory` (
+        `id` int(11) NOT NULL AUTO_INCREMENT,
+        `sku` varchar(64) DEFAULT NULL,
+        #`ean` int(100) DEFAULT NULL,
+        #`upc` int(100) DEFAULT NULL,
+        `image` varchar(255) DEFAULT NULL,
+        `published_at` int(11) NOT NULL DEFAULT '0',
+        `created_at` int(11) NOT NULL DEFAULT '0',
+        `updated_at` int(11) NOT NULL DEFAULT '0',
+        `deleted_at` int(11) NOT NULL DEFAULT '0',
+        PRIMARY KEY (`id`),
+        UNIQUE KEY (`sku`)
+        ) ENGINE=MyISAM AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+        '''
+    cursor.execute(sql)
+    db.commit()
+except MySQLdb.Error as e:
+    print ("Error %d: %s" % (e.args[0], e.args[1]))
+    db.rollback()
+db.close()
+    
 try:
     db = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
     cursor = db.cursor()
     for each_product in product_accessory:
+#        sku = each_product[1].strip()
+#        image = each_product[2].strip()
         published_date = time.mktime(datetime.datetime.strptime(str(each_product[3]), "%Y-%m-%d").timetuple())
-    #    print(published_date)
-#        sql = "INSERT IGNORE INTO NEW_PRODUCT_ACCESSORY(sku, \
-#        image, published_at, created_at, updated_at, deleted_at)\
-#        VALUES ('{}', '{}', '{}', '{}', '{}', '{}')".format(str(each_product[1]), str(each_product[2]), int(published_date), int(time.time()), int(time.time()), "0")
-        sql = "INSERT INTO NEW_PRODUCT_ACCESSORY(sku, \
-        image, published_at, created_at, updated_at, deleted_at)\
-        VALUES ('{}', '{}', '{}', '{}', '{}', '{}') ON DUPLICATE KEY UPDATE image='{}', updated_at='{}'".format(str(each_product[1]), str(each_product[2]), int(published_date), int(time.time()), int(time.time()), "0", str(each_product[2]), int(time.time()))
-
-    #    print(sql)
-        cursor.execute(sql)
-        db.commit()
+        sql_check = "SELECT `sku`, `image` FROM `new_product_accessory` WHERE sku = '{}'".format(str(each_product[1]))
+        check = cursor.execute(sql_check)
+        res = cursor.fetchall()
+        if check == 1:
+            if [res[0][0], res[0][1]] != [str(each_product[1]), str(each_product[2])]:
+                sql = "UPDATE `new_product_accessory` SET image = '{}', updated_at = '{}' WHERE sku = '{}'".format(str(each_product[2].strip()), int(time.time()), str(each_product[1].strip()))
+                cursor.execute(sql)
+                db.commit()
+                print("update")
+        else:
+            sql = "INSERT INTO NEW_PRODUCT_ACCESSORY(sku, image, published_at, created_at, updated_at, deleted_at)\
+               VALUES ('{}', '{}', '{}', '{}', '{}', '{}')".format(str(each_product[1].strip()), str(each_product[2].strip()), int(published_date), int(time.time()), int(time.time()), "0")
+            print("insert")
+            cursor.execute(sql)
+            db.commit()
 
 except MySQLdb.Error as e:
         print ("Error %d: %s" % (e.args[0], e.args[1]))
@@ -91,11 +122,18 @@ try:
             lan_dic = mk_lan_dic()
             locale = lan_dic[lan_detail[0][1]]
             print(locale)
-            # INSERT IGNORE
-            sql5 = 'REPLACE INTO NEW_PRODUCT_ACCESSORY_DETAIL(accessory_id, \
+            sql5 = 'INSERT INTO NEW_PRODUCT_ACCESSORY(accessory_id, \
                 locale, name, description, created_at, updated_at, deleted_at)\
-                VALUES ("{}", "{}", "{}", "{}", "{}", "{}", "{}")'.format(accessory_id[0][0], str(locale), str(each_lan[1]), str(each_lan[2]), int(time.time()), int(time.time()), "0")
-#            print(sql5)
+                VALUES ("{}", "{}", "{}", "{}", "{}", "{}", "{}") \
+                ON DUPLICATE KEY UPDATE name="{}", description = "{}", updated_at="{}"'\
+               .format(accessory_id[0][0], str(locale), str(each_lan[1]), str(each_lan[2]), \
+                       int(time.time()), int(time.time()), "0", str(each_lan[1]), str(each_lan[2]), int(time.time()))
+#==============================================================================
+#             sql5 = 'REPLACE INTO NEW_PRODUCT_ACCESSORY_DETAIL(accessory_id, \
+#                 locale, name, description, created_at, updated_at, deleted_at)\
+#                 VALUES ("{}", "{}", "{}", "{}", "{}", "{}", "{}")'.format(accessory_id[0][0], str(locale), str(each_lan[1]), str(each_lan[2]), int(time.time()), int(time.time()), "0")
+# #            print(sql5)
+#==============================================================================
             cursor1.execute(sql5)
 
             db1.commit()
@@ -258,3 +296,18 @@ for i in p:
     for j in res:
         if i != j:
             print (i)
+
+
+    #    print(published_date)
+#        sql = "INSERT INTO NEW_PRODUCT_ACCESSORY(sku, \
+#        image, published_at, created_at, updated_at, deleted_at)\
+#        VALUES ('{}', '{}', '{}', '{}', '{}', '{}')".format(str(each_product[1]), str(each_product[2]), int(published_date), int(time.time()), int(time.time()), "0")
+        sql = "INSERT INTO NEW_PRODUCT_ACCESSORY(sku, \
+        image, published_at, created_at, updated_at, deleted_at)\
+        VALUES ('{}', '{}', '{}', '{}', '{}', '{}') ON DUPLICATE KEY UPDATE image='{}', updated_at='{}'"\
+               .format(str(each_product[1]), str(each_product[2]), int(published_date), \
+                       int(time.time()), int(time.time()), "0", str(each_product[2]), int(time.time()))
+
+    #    print(sql)
+        cursor.execute(sql)
+        db.commit()
