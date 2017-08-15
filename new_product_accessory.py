@@ -7,19 +7,21 @@ Created on Tue Aug  8 10:57:25 2017
 
 import os, MySQLdb, time, datetime
 
-#file_path = os.path.dirname(__file__)
-A = "SP-1BAY-STAND-SILVER"
-B = "data/QNAP/SP-1BAY-STAND-SILVER.jpg"
-# write-in DB
-db = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas")
-cursor = db.cursor()
-sql = "INSERT INTO NEW_PRODUCT_ACCESSORY(sku, \
-    image, published_at, created_at, updated_at, deleted_at)\
-    VALUES ('{}', '{}', '{}', '{}', '{}', '{}')".format(str(A), str(B), int(time.time()), int(time.time()), int(time.time()), "0")
-# REPLACE can be INSERT
-cursor.execute(sql)
-db.commit()
-db.close()
+#==============================================================================
+# #file_path = os.path.dirname(__file__)
+# A = "SP-1BAY-STAND-SILVER"
+# B = "data/QNAP/SP-1BAY-STAND-SILVER.jpg"
+# # write-in DB
+# db = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas")
+# cursor = db.cursor()
+# sql = "INSERT INTO NEW_PRODUCT_ACCESSORY(sku, \
+#     image, published_at, created_at, updated_at, deleted_at)\
+#     VALUES ('{}', '{}', '{}', '{}', '{}', '{}')".format(str(A), str(B), int(time.time()), int(time.time()), int(time.time()), "0")
+# # REPLACE can be INSERT
+# cursor.execute(sql)
+# db.commit()
+# db.close()
+#==============================================================================
 
 # get DB data
 #db = MySQLdb.connect(host="10.8.2.125", user=" ", passwd=" ", db="yen_nas", charset='utf8')
@@ -35,8 +37,7 @@ db.close()
 try:
     db = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
     cursor = db.cursor()
-    sql = '''
-        CREATE TABLE IF NOT EXISTS `new_product_accessory` (
+    sqls = ['''CREATE TABLE IF NOT EXISTS `new_product_accessory` (
         `id` int(11) NOT NULL AUTO_INCREMENT,
         `sku` varchar(64) DEFAULT NULL,
         #`ean` int(100) DEFAULT NULL,
@@ -48,10 +49,29 @@ try:
         `deleted_at` int(11) NOT NULL DEFAULT '0',
         PRIMARY KEY (`id`),
         UNIQUE KEY (`sku`)
-        ) ENGINE=MyISAM AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
-        '''
-    cursor.execute(sql)
-    db.commit()
+        ) ENGINE=MyISAM AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;''',
+        '''CREATE TABLE IF NOT EXISTS `new_product_accessory_detail` (
+        `accessory_id` int(11) NOT NULL,
+        `locale` varchar(5) DEFAULT NULL, #zh-tw/en-us/de-de...
+        `name` varchar(255) DEFAULT NULL,
+        `description` varchar(255) DEFAULT NULL,
+        `created_at` int(11) NOT NULL DEFAULT '0',
+        `updated_at` int(11) NOT NULL DEFAULT '0',
+        `deleted_at` int(11) NOT NULL DEFAULT '0',
+        PRIMARY KEY (`accessory_id`, `locale`)
+        ) ENGINE=MyISAM DEFAULT CHARSET=utf8;''',
+        '''CREATE TABLE IF NOT EXISTS `new_product_accessory_related` (
+        `accessory_id` int(11) NOT NULL DEFAULT '0',
+        `product_id` int(11) NOT NULL DEFAULT '0', # 官網 nas_id
+        `created_at` int(11) NOT NULL DEFAULT '0',
+        `updated_at` int(11) NOT NULL DEFAULT '0',
+        `deleted_at` int(11) NOT NULL DEFAULT '0',
+        PRIMARY KEY (`accessory_id`,`product_id`)
+        ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+        ''']
+    for i in sqls:
+        cursor.execute(i)
+        db.commit()
 except MySQLdb.Error as e:
     print ("Error %d: %s" % (e.args[0], e.args[1]))
     db.rollback()
@@ -64,15 +84,16 @@ try:
 #        sku = each_product[1].strip()
 #        image = each_product[2].strip()
         published_date = time.mktime(datetime.datetime.strptime(str(each_product[3]), "%Y-%m-%d").timetuple())
-        sql_check = "SELECT `sku`, `image` FROM `new_product_accessory` WHERE sku = '{}'".format(str(each_product[1]))
+        sql_check = "SELECT `sku`, `image` FROM `new_product_accessory` WHERE sku = '{}'".format(str(each_product[1].strip()))
+        print(each_product[1])
         check = cursor.execute(sql_check)
         res = cursor.fetchall()
         if check == 1:
-            if [res[0][0], res[0][1]] != [str(each_product[1]), str(each_product[2])]:
-                sql = "UPDATE `new_product_accessory` SET image = '{}', updated_at = '{}' WHERE sku = '{}'".format(str(each_product[2].strip()), int(time.time()), str(each_product[1].strip()))
-                cursor.execute(sql)
-                db.commit()
-                print("update")
+#            if res[0][0].strip() != str(each_product[1].strip()):
+            sql = "UPDATE `new_product_accessory` SET image = '{}', updated_at = '{}' WHERE sku = '{}'".format(str(each_product[2].strip()), int(time.time()), str(each_product[1].strip()))
+            cursor.execute(sql)
+            db.commit()
+            print("update")
         else:
             sql = "INSERT INTO NEW_PRODUCT_ACCESSORY(sku, image, published_at, created_at, updated_at, deleted_at)\
                VALUES ('{}', '{}', '{}', '{}', '{}', '{}')".format(str(each_product[1].strip()), str(each_product[2].strip()), int(published_date), int(time.time()), int(time.time()), "0")
@@ -110,7 +131,7 @@ try:
         cursor2.execute(sql2)
 #        print(sql2)
         results = cursor2.fetchall()
-        sql3 = "SELECT `id` FROM `new_product_accessory` WHERE `sku` = '{}' AND `image` = '{}'".format(each_product[1], each_product[2])
+        sql3 = "SELECT `id` FROM `new_product_accessory` WHERE `sku` = '{}' AND `image` = '{}'".format(each_product[1].strip(), each_product[2].strip())
         cursor1.execute(sql3)
 #        print(sql3)
         accessory_id = cursor1.fetchall()
@@ -122,12 +143,13 @@ try:
             lan_dic = mk_lan_dic()
             locale = lan_dic[lan_detail[0][1]]
             print(locale)
-            sql5 = 'INSERT INTO NEW_PRODUCT_ACCESSORY(accessory_id, \
+            sql5 = 'INSERT INTO NEW_PRODUCT_ACCESSORY_DETAIL(accessory_id, \
                 locale, name, description, created_at, updated_at, deleted_at)\
                 VALUES ("{}", "{}", "{}", "{}", "{}", "{}", "{}") \
                 ON DUPLICATE KEY UPDATE name="{}", description = "{}", updated_at="{}"'\
                .format(accessory_id[0][0], str(locale), str(each_lan[1]), str(each_lan[2]), \
                        int(time.time()), int(time.time()), "0", str(each_lan[1]), str(each_lan[2]), int(time.time()))
+#            print(sql5)
 #==============================================================================
 #             sql5 = 'REPLACE INTO NEW_PRODUCT_ACCESSORY_DETAIL(accessory_id, \
 #                 locale, name, description, created_at, updated_at, deleted_at)\
@@ -135,7 +157,6 @@ try:
 # #            print(sql5)
 #==============================================================================
             cursor1.execute(sql5)
-
             db1.commit()
 except MySQLdb.Error as e:
         print ("Error %d: %s" % (e.args[0], e.args[1]))
@@ -164,58 +185,51 @@ try:
     CHECK2 = []
     for each_access in accessory:
         c += 1
-        sql2 = "SELECT `product_id` FROM `product` WHERE `model` = '{}'".format(each_access[1]) # 用 access sku 找到對應 id
-        print("HERE!1")
-        cursor2.execute(sql2)
-        product_id = cursor2.fetchall()
-        print("HERE!2")
-        sql3 = "SELECT `category_id` FROM `product_to_category` WHERE `product_id` = {}".format(product_id[0][0]) # 用 product_id 找到對應的 category_id 通常不只一筆
-        print("HERE!3")
-        cursor2.execute(sql3)
-        category_ids = cursor2.fetchall()
-#        print("len(category_ids)={}".format(category_ids))
-        # 用 category_ids 跑回圈
-        for each_cate in category_ids:
-            if len(each_cate) == 0:
-                c_each_cate += 1
-                each_cate = 0
-                sql4 = "SELECT `name` FROM `category_description` WHERE `category_id` = {}".format(each_cate) # 用 category_id 找對應 name (此處為 NAS/NVR name)
-            else:
-                sql4 = "SELECT `name` FROM `category_description` WHERE `category_id` = {}".format(each_cate[0])
-            print("HERE!5")
-            cursor2.execute(sql4)
-            NAS_name = cursor2.fetchall() # 會包含 NVR 和 XXX Series 等以下與官網 nas 的 temp_name 對不上的名稱，多語，所以有好幾個
-            print("HERE!6")
-            each_nas = NAS_name[0][0].strip().lower()
-            #
-
-            #
-            if len(NAS_name) == 0: # 基本上不會進來這個條件下
-                CHECK.append(each_cate[0])
-                NAS_name = ''
-                sql5 = "SELECT `ItemID` FROM `product_items` WHERE `temp_name` = '{}'".format(NAS_name)
-#            elif NAS_name[0][0][-1] == ' ':
-#                sql5 = "SELECT `ItemID` FROM `PRODUCT_ITEMS` WHERE `temp_name` = '{}'".format(NAS_name[0][0][:-1])
-            else:
-                sql5 = "SELECT `ItemID` FROM `product_items` WHERE `temp_name` = '{}'".format(each_nas) # 用 NAS name 找機種 ID
-            print(sql5)
-            cursor1.execute(sql5)
-            item_id = cursor1.fetchall()
-            #
-            print(item_id)
-            if len(item_id) == 0:
-                CHECK2.append(each_nas)
-                item_id = 0
-                print(item_id)
-                sql6 = "INSERT IGNORE INTO NEW_PRODUCT_ACCESSORY_RELATED(accessory_id, product_id,\
-                created_at, updated_at, deleted_at) VALUES ('{}', '{}', '{}', '{}', '{}')".format(each_access[0], item_id, int(time.time()), int(time.time()), "0")
-            else:
-                sql6 = "INSERT IGNORE INTO NEW_PRODUCT_ACCESSORY_RELATED(accessory_id, product_id,\
-                created_at, updated_at, deleted_at) VALUES ('{}', '{}', '{}', '{}', '{}')".format(each_access[0], item_id[0][0], int(time.time()), int(time.time()), "0")
-            print("sql6: {}".format(sql6))
-            cursor1.execute(sql6)
-            db1.commit()
-            print("HERE!9")
+        if each_access[1] != '':
+            sql2 = "SELECT `product_id` FROM `product` WHERE `model` = '{}'".format(each_access[1]) # 用 access sku 找到對應 id
+            cursor2.execute(sql2)
+            product_id = cursor2.fetchall()
+            for i in product_id:
+                sql3 = "SELECT `category_id` FROM `product_to_category` WHERE `product_id` = {}".format(i[0]) # 用 product_id 找到對應的 category_id 通常不只一筆
+                cursor2.execute(sql3)
+                category_ids = cursor2.fetchall()
+                # 用 category_ids 跑回圈
+                for each_cate in category_ids:
+                    if len(each_cate) == 0: # 基本上不會進來這個條件下
+                        c_each_cate += 1
+                        each_cate = 0
+                        sql4 = "SELECT `name` FROM `category_description` WHERE `category_id` = {}".format(each_cate) # 用 category_id 找對應 name (此處為 NAS/NVR name)
+                    else:
+                        sql4 = "SELECT `name` FROM `category_description` WHERE `category_id` = {}".format(each_cate[0])
+                    cursor2.execute(sql4)
+                    NAS_name = cursor2.fetchall() # 會包含 NVR 和 XXX Series 等以下與官網 nas 的 temp_name 對不上的名稱，多語，所以有好幾個
+                    each_nas = NAS_name[0][0].strip() # .lower() 
+                    if len(NAS_name) == 0: # 基本上不會進來這個條件下
+                        CHECK.append(each_cate[0])
+                        NAS_name = ''
+                        sql5 = "SELECT `ItemID` FROM `product_items` WHERE `temp_name` = '{}'".format(NAS_name)
+                    else:
+                        sql5 = "SELECT `ItemID` FROM `product_items` WHERE `temp_name` = '{}'".format(each_nas) # 用 NAS name 找機種 ID
+                    cursor1.execute(sql5)
+                    item_id = cursor1.fetchall()
+                    if len(item_id) == 0:
+                        CHECK2.append(each_nas)
+#==============================================================================
+#                         item_id = 0
+#                         sql6 = "INSERT INTO NEW_PRODUCT_ACCESSORY_RELATED(accessory_id, product_id,\
+#                         created_at, updated_at, deleted_at) VALUES ('{}', '{}', '{}', '{}', '{}') \
+#                         ON DUPLICATE KEY UPDATE accessory_id ='{}', product_id = '{}', updated_at='{}'"\
+#                        .format(each_access[0], item_id, int(time.time()), int(time.time()), "0", each_access[0], item_id, int(time.time()))
+#==============================================================================
+                    else:
+                        sql6 = "INSERT INTO NEW_PRODUCT_ACCESSORY_RELATED(accessory_id, product_id,\
+                        created_at, updated_at, deleted_at) VALUES ('{}', '{}', '{}', '{}', '{}') \
+                        ON DUPLICATE KEY UPDATE accessory_id ='{}', product_id = '{}', updated_at='{}'"\
+                       .format(each_access[0], item_id[0][0], int(time.time()), int(time.time()), "0", each_access[0], item_id[0][0], int(time.time()))
+                    cursor1.execute(sql6)
+                    db1.commit()
+        else:
+            print("sku name = {}".format(each_access[1]))
 
 except MySQLdb.Error as e:
         print ("Error %d: %s" % (e.args[0], e.args[1]))
@@ -231,6 +245,44 @@ print(c)
 print("c_each_cate = {}".format(c_each_cate))
 print("CHECK = {}".format(CHECK))
 print("CHECK2 = {}".format(len(set(CHECK2))))
+
+# 驗證
+db2 = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
+cursor2 = db2.cursor()
+sql = "SELECT * FROM `product_to_category` WHERE `category_id` = 365"
+cursor2.execute(sql)
+resu = cursor2.fetchall()
+db2.close()
+
+db1 = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
+cursor1 = db1.cursor()
+sql2 = "SELECT * FROM `new_product_accessory_related` WHERE `product_id` = 223"
+cursor1.execute(sql2)
+resu2 = cursor1.fetchall()
+db1.close()
+
+
+
+db1 = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
+cursor1 = db1.cursor()
+sql2 = "SELECT `id`, `sku` FROM `new_product_accessory`"
+cursor1.execute(sql2)
+id_skus = cursor1.fetchall()
+db1.close()
+db2 = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
+cursor2 = db2.cursor()
+table = []
+for each in id_skus:
+#    table.append(each)
+    sql = "SELECT `product_id` FROM `product` WHERE `model` = '{}'".format(each[1])
+    cursor2.execute(sql)
+    product_id = cursor2.fetchall()
+    table.append([each, product_id])
+db2.close()
+    
+    
+
+
 
 VS = []
 TS = []
