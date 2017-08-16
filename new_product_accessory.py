@@ -153,7 +153,8 @@ try:
             if '描述' in each_lan[2]:
 #            if locale == 'zh-cn' or locale == 'zh-tw':
                 descrip_uncode = html.unescape(each_lan[2])
-                description = re.findall('<strong>描述(.*?[A-z \/\\<>0-9])<\/p>', descrip_uncode)[0].split('</strong>')[1].split('</span>')[0].strip()
+                pre_description = re.findall('描述(.*?[A-z \/\\<>0-9])<\/p>', descrip_uncode)[0]
+                description = pre_description.split('</strong>')[1].split('</span>')[0].strip()
                 if description[:6] == '&nbsp;':
                     description = description[6:]
                 else:
@@ -161,20 +162,36 @@ try:
                 print('zh')
             elif each_lan[2] == '':
                 print('{}, no description'.format(locale))
-            else:
+            elif 'Description' in each_lan[2]:
+                print("HERE")
                 descrip_uncode = html.unescape(each_lan[2])
-                description = re.findall('<strong>Description(.*?[A-z \/\\<>0-9])<\/p>', descrip_uncode)[0].split('</strong>')[1].split('</span>')[0].strip()
-                if description[:6] == '&nbsp;':
-                    description = description[6:]
+                pre_description = re.findall('Description(.*?[A-z \/\\<>0-9])<\/p>', descrip_uncode) #一直會 parse 不出東西來 但網頁版可以
+                if pre_description != []: 
+                    if '</strong>' in pre_description[0]:
+                        print("HERE!")
+                        description = pre_description[0].split('</strong>')[1].split('</span>')[0].strip()
+                        if description[:6] == '&nbsp;':
+                            description = description[6:]
+                        else:
+                            description = description
+                    else:
+                        print("HERE!!")
+                        description = pre_description[0].split(':')[1].split('</span>')[0].strip()
+                        if description[:6] == '&nbsp;':
+                            description = description[6:]
+                        else:
+                            description = description
                 else:
-                    description = description
-                print('other')
-            sql5 = 'INSERT INTO NEW_PRODUCT_ACCESSORY_DETAIL(accessory_id, \
+                    print("can't exp!")
+            else:
+                print("no Description!")
+#                print("other")
+            sql5 = "INSERT INTO NEW_PRODUCT_ACCESSORY_DETAIL(accessory_id, \
                 locale, name, description, created_at, updated_at, deleted_at)\
-                VALUES ("{}", "{}", "{}", "{}", "{}", "{}", "{}") \
-                ON DUPLICATE KEY UPDATE name="{}", description = "{}", updated_at="{}"'\
-               .format(accessory_id[0][0], str(locale), str(each_lan[1]), str(each_lan[2]), \
-                       int(time.time()), int(time.time()), "0", str(each_lan[1]), str(each_lan[2]), int(time.time()))
+                VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}') \
+                ON DUPLICATE KEY UPDATE name='{}', description = '{}', updated_at='{}'"\
+               .format(accessory_id[0][0], str(locale), str(each_lan[1]), str(description), \
+                       int(time.time()), int(time.time()), "0", str(each_lan[1]), str(description), int(time.time()))
 #            print(sql5)
 #==============================================================================
 #             sql5 = 'REPLACE INTO NEW_PRODUCT_ACCESSORY_DETAIL(accessory_id, \
