@@ -5,7 +5,7 @@ Created on Tue Aug  8 10:57:25 2017
 @author: Lily
 """
 
-import MySQLdb, time, datetime
+import html, MySQLdb, time, datetime
 
 
 # fetch product as a table
