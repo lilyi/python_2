@@ -5,7 +5,7 @@ Created on Tue Aug  8 10:57:25 2017
 @author: Lily
 """
 
-import os, MySQLdb, time, datetime
+import html, MySQLdb, time, datetime, re
 
 #==============================================================================
 # #file_path = os.path.dirname(__file__)
@@ -150,6 +150,25 @@ try:
             lan_dic = mk_lan_dic()
             locale = lan_dic[lan_detail[0][1]]
             print(locale)
+            if '描述' in each_lan[2]:
+#            if locale == 'zh-cn' or locale == 'zh-tw':
+                descrip_uncode = html.unescape(each_lan[2])
+                description = re.findall('<strong>描述(.*?[A-z \/\\<>0-9])<\/p>', descrip_uncode)[0].split('</strong>')[1].split('</span>')[0].strip()
+                if description[:6] == '&nbsp;':
+                    description = description[6:]
+                else:
+                    description = description
+                print('zh')
+            elif each_lan[2] == '':
+                print('{}, no description'.format(locale))
+            else:
+                descrip_uncode = html.unescape(each_lan[2])
+                description = re.findall('<strong>Description(.*?[A-z \/\\<>0-9])<\/p>', descrip_uncode)[0].split('</strong>')[1].split('</span>')[0].strip()
+                if description[:6] == '&nbsp;':
+                    description = description[6:]
+                else:
+                    description = description
+                print('other')
             sql5 = 'INSERT INTO NEW_PRODUCT_ACCESSORY_DETAIL(accessory_id, \
                 locale, name, description, created_at, updated_at, deleted_at)\
                 VALUES ("{}", "{}", "{}", "{}", "{}", "{}", "{}") \
