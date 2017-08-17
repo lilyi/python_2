@@ -127,82 +127,61 @@ def mk_lan_dic():
     return lan_dic
 
 def decode_description(descrip):
-    if descrip_cart == '':
-        res = 'NULL'
+    if descrip == '':
+        result = 'NULL'
     elif '描述' in descrip:
         decodeDES = html.unescape(descrip)
         EXPDES = re.findall('描述(.*?[A-z \/\\<>0-9].)<\/p>', decodeDES)[0]
-        res = re.findall('<\/strong>(.*?[A-z \/\\<>0-9].)<\/span>', EXPDES)[0].strip()
-    else:
+        res = re.findall('<\/strong>(.*?[A-z \/\\<>0-9].)($|<\/span>)', EXPDES)
+        if len(res) != 0:
+            print("0':{}".format(res))
+            result = res[0][0].strip()
+        else:
+            print("0:{}".format(res))
+            result = res
+    elif 'Description' in descrip:
         decodeDES = html.unescape(descrip)
         EXPDES = re.findall('Description(.*?[A-z \/\\<>0-9].)<\/p>', decodeDES)[0]
         if 'style="color: rgb(0, 0, 0);"' in EXPDES:
-            res = re.findall('>&nbsp;(.*?[A-z \/\\<>0-9].)<\/span>', EXPDES)
+            res = re.findall('>&nbsp;(.*?[A-z \/\\<>0-9].)($|<\/span>)', EXPDES)
             if len(res) != 0:
-                result = res[0].strip()
+                print("1':{}".format(res[0]))
+                result = res[0][0].strip()
             else:
                 print("1:{}".format(res))
                 result = res
         elif 'font-family:' in EXPDES:
-            res = re.findall('">(.*?[A-z \/\\<>0-9].)<\/span>', EXPDES)
+            res = re.findall('">(.*?[A-z \/\\<>0-9].)($|<\/span>)', EXPDES)
             if len(res) != 0:
-                result = res[0].strip()
+                print("2':{}".format(res))
+                result = res[0][0].strip()
             else:
                 print("2:{}".format(res))
                 result = res
+        elif EXPDES[0] == ':&nbsp;</strong>':
+            result = 'error'
         else:
             if '&nbsp;' in EXPDES:
-                res = re.findall('&nbsp;(.*?[A-z \/\\<>0-9].)<\/span>', EXPDES)
+                res = re.findall('&nbsp;(.*?[A-z \/\\<>0-9].)($|<\/span>)', EXPDES)
                 if len(res) != 0:
-                    result = res[0].strip()
+                    print("3':{}".format(res))
+                    result = res[0][0].strip()
                 else:
                     print("3:{}".format(res))
                     result = res
             else:
-                res = re.findall('<\/strong>(.*?[A-z \/\\<>0-9].)<\/span>', EXPDES)[0].strip()
+                res = re.findall('(:|<\/strong>)(.*?[A-z \/\\<>0-9].)($|<\/span>)', EXPDES)
                 if len(res) != 0:
-                    result = res[0].strip()
+                    print("4':{}".format(res))
+                    result = res[0][1].strip()
                 else:
                     print("4:{}".format(res))
                     result = res
-    return res
-        
-    
-             if '描述' in each_lan[2]:
-             
-                 descrip_uncode = html.unescape(each_lan[2])
-                 pre_description = re.findall('描述(.*?[A-z \/\\<>0-9])<\/p>', descrip_uncode)[0]
-                 description = pre_description.split('</strong>')[1].split('</span>')[0].strip()
-                 if description[:6] == '&nbsp;':
-                     description = description[6:]
-                 else:
-                     description = description
-                 print('zh')
-             elif each_lan[2] == '':
-                 print('{}, no description'.format(locale))
-             elif 'Description' in each_lan[2]:
-                 print("HERE")
-                 descrip_uncode = html.unescape(each_lan[2])
-                 pre_description = re.findall('Description(.*?[A-z \/\\<>0-9])<\/p>', descrip_uncode) #一直會 parse 不出東西來 但網頁版可以
-                 if pre_description != []: 
-                     if '</strong>' in pre_description[0]:
-                         print("HERE!")
-                         description = pre_description[0].split('</strong>')[1].split('</span>')[0].strip()
-                         if description[:6] == '&nbsp;':
-                             description = description[6:]
-                         else:
-                             description = description
-                     else:
-                         print("HERE!!")
-                         description = pre_description[0].split(':')[1].split('</span>')[0].strip()
-                         if description[:6] == '&nbsp;':
-                             description = description[6:]
-                         else:
-                             description = description
-                 else:
-                     print("can't exp!")
-             else:
-                 print("no Description!")
+    else:
+        result = 'no "Description"!'
+        print('no "Description"!')
+    return result
+
 
 # table 2
 
@@ -229,7 +208,7 @@ def table2():
             lan_dic = mk_lan_dic()
             locale = lan_dic[lanCode[0][0]] # locale
             
-            description = decode_description(descrip_cart)[0] # description
+            description = decode_description(descrip_cart) # description
             sql_insert = "INSERT INTO NEW_PRODUCT_ACCESSORY_DETAIL(accessory_id, \
                     locale, name, description, created_at, updated_at, deleted_at)\
                     VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}') \
