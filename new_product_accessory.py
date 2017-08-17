@@ -126,91 +126,215 @@ def mk_lan_dic():
         lan_dic[code[idx]] = lan_list[idx]
     return lan_dic
 
-# table 2
-tStart = time.time()
-try:
-    db1 = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
-    db2 = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
-    cursor1 = db1.cursor()
-    cursor2 = db2.cursor()
-    for each_product in product_accessory:
-        sql2 = "SELECT `language_id`, `name`, `description` FROM `product_description` WHERE `product_id` = {}".format(each_product[0])
-        cursor2.execute(sql2)
-#        print(sql2)
-        results = cursor2.fetchall()
-        sql3 = "SELECT `id` FROM `new_product_accessory` WHERE `sku` = '{}' AND `image` = '{}'".format(each_product[1].strip(), each_product[2].strip())
-        cursor1.execute(sql3)
-#        print(sql3)
-        accessory_id = cursor1.fetchall()
-        for each_lan in results:
-            sql4 = "SELECT `language_id`, `code` FROM `language` WHERE `language_id` = {}".format(each_lan[0])
-            cursor2.execute(sql4)
-#            print(sql4)
-            lan_detail = cursor2.fetchall()
-            lan_dic = mk_lan_dic()
-            locale = lan_dic[lan_detail[0][1]]
-            print(locale)
-            if '描述' in each_lan[2]:
-#            if locale == 'zh-cn' or locale == 'zh-tw':
-                descrip_uncode = html.unescape(each_lan[2])
-                pre_description = re.findall('描述(.*?[A-z \/\\<>0-9])<\/p>', descrip_uncode)[0]
-                description = pre_description.split('</strong>')[1].split('</span>')[0].strip()
-                if description[:6] == '&nbsp;':
-                    description = description[6:]
-                else:
-                    description = description
-                print('zh')
-            elif each_lan[2] == '':
-                print('{}, no description'.format(locale))
-            elif 'Description' in each_lan[2]:
-                print("HERE")
-                descrip_uncode = html.unescape(each_lan[2])
-                pre_description = re.findall('Description(.*?[A-z \/\\<>0-9])<\/p>', descrip_uncode) #一直會 parse 不出東西來 但網頁版可以
-                if pre_description != []: 
-                    if '</strong>' in pre_description[0]:
-                        print("HERE!")
-                        description = pre_description[0].split('</strong>')[1].split('</span>')[0].strip()
-                        if description[:6] == '&nbsp;':
-                            description = description[6:]
-                        else:
-                            description = description
-                    else:
-                        print("HERE!!")
-                        description = pre_description[0].split(':')[1].split('</span>')[0].strip()
-                        if description[:6] == '&nbsp;':
-                            description = description[6:]
-                        else:
-                            description = description
-                else:
-                    print("can't exp!")
+def decode_description(descrip):
+    if descrip_cart == '':
+        res = 'NULL'
+    elif '描述' in descrip:
+        decodeDES = html.unescape(descrip)
+        EXPDES = re.findall('描述(.*?[A-z \/\\<>0-9].)<\/p>', decodeDES)[0]
+        res = re.findall('<\/strong>(.*?[A-z \/\\<>0-9].)<\/span>', EXPDES)[0].strip()
+    else:
+        decodeDES = html.unescape(descrip)
+        EXPDES = re.findall('Description(.*?[A-z \/\\<>0-9].)<\/p>', decodeDES)[0]
+        if 'style="color: rgb(0, 0, 0);"' in EXPDES:
+            res = re.findall('>&nbsp;(.*?[A-z \/\\<>0-9].)<\/span>', EXPDES)
+            if len(res) != 0:
+                result = res[0].strip()
             else:
-                print("no Description!")
-#                print("other")
-            sql5 = "INSERT INTO NEW_PRODUCT_ACCESSORY_DETAIL(accessory_id, \
-                locale, name, description, created_at, updated_at, deleted_at)\
-                VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}') \
-                ON DUPLICATE KEY UPDATE name='{}', description = '{}', updated_at='{}'"\
-               .format(accessory_id[0][0], str(locale), str(each_lan[1]), str(description), \
-                       int(time.time()), int(time.time()), "0", str(each_lan[1]), str(description), int(time.time()))
-#            print(sql5)
-#==============================================================================
-#             sql5 = 'REPLACE INTO NEW_PRODUCT_ACCESSORY_DETAIL(accessory_id, \
-#                 locale, name, description, created_at, updated_at, deleted_at)\
-#                 VALUES ("{}", "{}", "{}", "{}", "{}", "{}", "{}")'.format(accessory_id[0][0], str(locale), str(each_lan[1]), str(each_lan[2]), int(time.time()), int(time.time()), "0")
-# #            print(sql5)
-#==============================================================================
-            cursor1.execute(sql5)
-            db1.commit()
-except MySQLdb.Error as e:
-        print ("Error %d: %s" % (e.args[0], e.args[1]))
-        db1.rollback()
-        db2.rollback()
-db1.close()
-db2.close()
+                print("1:{}".format(res))
+                result = res
+        elif 'font-family:' in EXPDES:
+            res = re.findall('">(.*?[A-z \/\\<>0-9].)<\/span>', EXPDES)
+            if len(res) != 0:
+                result = res[0].strip()
+            else:
+                print("2:{}".format(res))
+                result = res
+        else:
+            if '&nbsp;' in EXPDES:
+                res = re.findall('&nbsp;(.*?[A-z \/\\<>0-9].)<\/span>', EXPDES)
+                if len(res) != 0:
+                    result = res[0].strip()
+                else:
+                    print("3:{}".format(res))
+                    result = res
+            else:
+                res = re.findall('<\/strong>(.*?[A-z \/\\<>0-9].)<\/span>', EXPDES)[0].strip()
+                if len(res) != 0:
+                    result = res[0].strip()
+                else:
+                    print("4:{}".format(res))
+                    result = res
+    return res
+        
+    
+             if '描述' in each_lan[2]:
+             
+                 descrip_uncode = html.unescape(each_lan[2])
+                 pre_description = re.findall('描述(.*?[A-z \/\\<>0-9])<\/p>', descrip_uncode)[0]
+                 description = pre_description.split('</strong>')[1].split('</span>')[0].strip()
+                 if description[:6] == '&nbsp;':
+                     description = description[6:]
+                 else:
+                     description = description
+                 print('zh')
+             elif each_lan[2] == '':
+                 print('{}, no description'.format(locale))
+             elif 'Description' in each_lan[2]:
+                 print("HERE")
+                 descrip_uncode = html.unescape(each_lan[2])
+                 pre_description = re.findall('Description(.*?[A-z \/\\<>0-9])<\/p>', descrip_uncode) #一直會 parse 不出東西來 但網頁版可以
+                 if pre_description != []: 
+                     if '</strong>' in pre_description[0]:
+                         print("HERE!")
+                         description = pre_description[0].split('</strong>')[1].split('</span>')[0].strip()
+                         if description[:6] == '&nbsp;':
+                             description = description[6:]
+                         else:
+                             description = description
+                     else:
+                         print("HERE!!")
+                         description = pre_description[0].split(':')[1].split('</span>')[0].strip()
+                         if description[:6] == '&nbsp;':
+                             description = description[6:]
+                         else:
+                             description = description
+                 else:
+                     print("can't exp!")
+             else:
+                 print("no Description!")
+
+# table 2
+
+def table2():
+    try:
+        db_yen = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
+        db_cart = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
+        cursor_yen = db_yen.cursor()
+        cursor_cart = db_cart.cursor()
+        sql1 = "SELECT `product_id`, `language_id`, `name`, `description` FROM `product_description`"
+        cursor_cart.execute(sql1)
+        product_description = cursor_cart.fetchall()
+        for each_pd_lan in product_description:
+            pID, lanID, name, descrip_cart = each_pd_lan[0], each_pd_lan[1], each_pd_lan[2], each_pd_lan[3]  # name
+            sql2 = "SELECT `model` FROM `product` WHERE `product_id` = {}".format(pID)
+            cursor_cart.execute(sql2)
+            model = cursor_cart.fetchall()
+            sql3 = "SELECT `id` FROM `new_product_accessory` WHERE `sku` = '{}'".format(model[0][0].strip().upper())
+            cursor_yen.execute(sql3)
+            accessID = cursor_yen.fetchall() # id
+            sql4 = "SELECT `code` FROM `language` WHERE `language_id` = {}".format(lanID)
+            cursor_cart.execute(sql4)
+            lanCode = cursor_cart.fetchall()
+            lan_dic = mk_lan_dic()
+            locale = lan_dic[lanCode[0][0]] # locale
+            
+            description = decode_description(descrip_cart)[0] # description
+            sql_insert = "INSERT INTO NEW_PRODUCT_ACCESSORY_DETAIL(accessory_id, \
+                    locale, name, description, created_at, updated_at, deleted_at)\
+                    VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}') \
+                    ON DUPLICATE KEY UPDATE name='{}', description = '{}', updated_at='{}'"\
+                   .format(accessID[0][0], str(locale), str(name), str(description), \
+                           int(time.time()), int(time.time()), "0", str(name), str(description), int(time.time()))
+            cursor_yen.execute(sql_insert)
+            db_yen.commit()
+    except MySQLdb.Error as e:
+            print ("Error %d: %s" % (e.args[0], e.args[1]))
+            db_yen.rollback()
+            db_cart.rollback()
+    db_yen.close()
+    db_cart.close()
+    
+tStart = time.time()
+table2()
 tStop = time.time()
 taken = round(tStop - tStart)
 print("Done!\n")
-print("Time taken: ", round(taken//60), "(m)", round(taken%60), "(s)")
+print("Time taken: ", round(taken//60), "(m)", round(taken%60), "(s)")        
+        
+    
+#==============================================================================
+#    old 
+# try:    
+#     db1 = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
+#     db2 = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
+#     cursor1 = db1.cursor()
+#     cursor2 = db2.cursor()
+#     for each_product in product_accessory:
+#         sql2 = "SELECT `language_id`, `name`, `description` FROM `product_description` WHERE `product_id` = {}".format(each_product[0])
+#         cursor2.execute(sql2)
+# #        print(sql2)
+#         results = cursor2.fetchall()
+#         sql3 = "SELECT `id` FROM `new_product_accessory` WHERE `sku` = '{}' AND `image` = '{}'".format(each_product[1].strip(), each_product[2].strip())
+#         cursor1.execute(sql3)
+# #        print(sql3)
+#         accessory_id = cursor1.fetchall()
+#         for each_lan in results:
+#             sql4 = "SELECT `language_id`, `code` FROM `language` WHERE `language_id` = {}".format(each_lan[0])
+#             cursor2.execute(sql4)
+# #            print(sql4)
+#             lan_detail = cursor2.fetchall()
+#             lan_dic = mk_lan_dic()
+#             locale = lan_dic[lan_detail[0][1]]
+#             print(locale)
+#             if '描述' in each_lan[2]:
+# #            if locale == 'zh-cn' or locale == 'zh-tw':
+#                 descrip_uncode = html.unescape(each_lan[2])
+#                 pre_description = re.findall('描述(.*?[A-z \/\\<>0-9])<\/p>', descrip_uncode)[0]
+#                 description = pre_description.split('</strong>')[1].split('</span>')[0].strip()
+#                 if description[:6] == '&nbsp;':
+#                     description = description[6:]
+#                 else:
+#                     description = description
+#                 print('zh')
+#             elif each_lan[2] == '':
+#                 print('{}, no description'.format(locale))
+#             elif 'Description' in each_lan[2]:
+#                 print("HERE")
+#                 descrip_uncode = html.unescape(each_lan[2])
+#                 pre_description = re.findall('Description(.*?[A-z \/\\<>0-9])<\/p>', descrip_uncode) #一直會 parse 不出東西來 但網頁版可以
+#                 if pre_description != []: 
+#                     if '</strong>' in pre_description[0]:
+#                         print("HERE!")
+#                         description = pre_description[0].split('</strong>')[1].split('</span>')[0].strip()
+#                         if description[:6] == '&nbsp;':
+#                             description = description[6:]
+#                         else:
+#                             description = description
+#                     else:
+#                         print("HERE!!")
+#                         description = pre_description[0].split(':')[1].split('</span>')[0].strip()
+#                         if description[:6] == '&nbsp;':
+#                             description = description[6:]
+#                         else:
+#                             description = description
+#                 else:
+#                     print("can't exp!")
+#             else:
+#                 print("no Description!")
+# #                print("other")
+#             sql5 = "INSERT INTO NEW_PRODUCT_ACCESSORY_DETAIL(accessory_id, \
+#                 locale, name, description, created_at, updated_at, deleted_at)\
+#                 VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}') \
+#                 ON DUPLICATE KEY UPDATE name='{}', description = '{}', updated_at='{}'"\
+#                .format(accessory_id[0][0], str(locale), str(each_lan[1]), str(description), \
+#                        int(time.time()), int(time.time()), "0", str(each_lan[1]), str(description), int(time.time()))
+# #            print(sql5)
+# #==============================================================================
+# #             sql5 = 'REPLACE INTO NEW_PRODUCT_ACCESSORY_DETAIL(accessory_id, \
+# #                 locale, name, description, created_at, updated_at, deleted_at)\
+# #                 VALUES ("{}", "{}", "{}", "{}", "{}", "{}", "{}")'.format(accessory_id[0][0], str(locale), str(each_lan[1]), str(each_lan[2]), int(time.time()), int(time.time()), "0")
+# # #            print(sql5)
+# #==============================================================================
+#             cursor1.execute(sql5)
+#             db1.commit()
+# except MySQLdb.Error as e:
+#         print ("Error %d: %s" % (e.args[0], e.args[1]))
+#         db1.rollback()
+#         db2.rollback()
+# db1.close()
+# db2.close()
+#==============================================================================
 
 # table 3
 tStart = time.time()
