@@ -187,8 +187,8 @@ try:
     print("Done!\n")
 except MySQLdb.Error as e:
         print ("Error %d: %s" % (e.args[0], e.args[1]))
-        db1.rollback()
-        db2.rollback()
+        db_yen.rollback()
+        db_cart.rollback()
 db_yen.close()
 db_cart.close()
 tStop = time.time()
