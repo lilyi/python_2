@@ -45,22 +45,23 @@ try:
     cursor = db.cursor()
     sqls = ['''CREATE TABLE IF NOT EXISTS `new_product_accessory` (
         `id` int(11) NOT NULL AUTO_INCREMENT,
+        `shop_id` INT(11)  NOT NULL,
         `sku` varchar(64) DEFAULT NULL,
         `image` varchar(255) DEFAULT NULL,
+        #`ean` int(100) DEFAULT NULL,
+        #`upc` int(100) DEFAULT NULL,
         `published_at` int(11) NOT NULL DEFAULT '0',
         `created_at` int(11) NOT NULL DEFAULT '0',
         `updated_at` int(11) NOT NULL DEFAULT '0',
         `deleted_at` int(11) NOT NULL DEFAULT '0',
         PRIMARY KEY (`id`),
-        UNIQUE KEY (`sku`)
+        UNIQUE KEY (`sku`, `shop_id`)
         ) ENGINE=MyISAM AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;''',
         '''CREATE TABLE IF NOT EXISTS `new_product_accessory_detail` (
         `accessory_id` int(11) NOT NULL,
         `locale` varchar(5) DEFAULT NULL, #zh-tw/en-us/de-de...
         `name` varchar(255) DEFAULT NULL,
         `description` varchar(255) DEFAULT NULL,
-        `ean` int(100) DEFAULT NULL,
-        `upc` int(100) DEFAULT NULL,
         `created_at` int(11) NOT NULL DEFAULT '0',
         `updated_at` int(11) NOT NULL DEFAULT '0',
         `deleted_at` int(11) NOT NULL DEFAULT '0',
@@ -91,7 +92,7 @@ try:
 #        sku = each_product[1].strip()
 #        image = each_product[2].strip()
         published_date = time.mktime(datetime.datetime.strptime(str(each_product[3]), "%Y-%m-%d").timetuple())
-        sql_check = "SELECT `sku`, `image` FROM `new_product_accessory` WHERE sku = '{}'".format(str(each_product[1].strip()))
+        sql_check = "SELECT `shop_id`, `sku`, `image` FROM `new_product_accessory` WHERE sku = '{}'".format(str(each_product[1].strip()))
         print(each_product[1])
         check = cursor.execute(sql_check)
         res = cursor.fetchall()
@@ -102,8 +103,8 @@ try:
             db.commit()
             print("update")
         else:
-            sql = "INSERT INTO NEW_PRODUCT_ACCESSORY(sku, image, published_at, created_at, updated_at, deleted_at)\
-               VALUES ('{}', '{}', '{}', '{}', '{}', '{}')".format(str(each_product[1].strip().upper()), str(each_product[2].strip()), int(published_date), int(time.time()), int(time.time()), "0")
+            sql = "INSERT INTO NEW_PRODUCT_ACCESSORY(shop_id, sku, image, published_at, created_at, updated_at, deleted_at)\
+               VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}')".format(each_product[0], str(each_product[1].strip().upper()), str(each_product[2].strip()), int(published_date), int(time.time()), int(time.time()), "0")
             print("insert")
             cursor.execute(sql)
             db.commit()
