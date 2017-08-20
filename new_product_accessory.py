@@ -10,19 +10,6 @@ from html.parser import HTMLParser
 
 # get DB data
 #db = MySQLdb.connect(host="10.8.2.125", user=" ", passwd=" ", db="yen_nas", charset='utf8')
-
-# fetch product as a table
-try:
-    db = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
-    sql = "SELECT `product_id`, `model`, `image`, `date_available` FROM `product`"
-    cursor = db.cursor()
-    cursor.execute(sql)
-    product_accessory = cursor.fetchall()
-except MySQLdb.Error as e:
-    print ("Error %d: %s" % (e.args[0], e.args[1]))
-    db.rollback()
-db.close()
-
 # create 3 tables
 try:
     db = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
@@ -32,8 +19,8 @@ try:
         `shop_id` INT(11)  NOT NULL,
         `sku` varchar(64) DEFAULT NULL,
         `image` varchar(255) DEFAULT NULL,
-        #`ean` int(100) DEFAULT NULL,
-        #`upc` int(100) DEFAULT NULL,
+        `ean` int(100) DEFAULT NULL,
+        `upc` int(100) DEFAULT NULL,
         `published_at` int(11) NOT NULL DEFAULT '0',
         `created_at` int(11) NOT NULL DEFAULT '0',
         `updated_at` int(11) NOT NULL DEFAULT '0',
@@ -67,43 +54,7 @@ except MySQLdb.Error as e:
     print ("Error %d: %s" % (e.args[0], e.args[1]))
     db.rollback()
 db.close()
-    
-# table 1 NEW_PRODUCT_ACCESSORY
-try:
-    db = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
-    cursor = db.cursor()
-    for each_product in product_accessory:
-#        sku = each_product[1].strip()
-#        image = each_product[2].strip()
-        published_date = time.mktime(datetime.datetime.strptime(str(each_product[3]), "%Y-%m-%d").timetuple())
-        sql_check = "SELECT `shop_id`, `sku`, `image` FROM `new_product_accessory` WHERE sku = '{}'".format(str(each_product[1].strip()))
-        print(each_product[1])
-        check = cursor.execute(sql_check)
-        res = cursor.fetchall()
-        if check == 1:
-#            if res[0][0].strip() != str(each_product[1].strip()):
-            sql = "UPDATE `new_product_accessory` SET image = '{}', updated_at = '{}' WHERE sku = '{}'".format(str(each_product[2].strip()), int(time.time()), str(each_product[1].strip()))
-            cursor.execute(sql)
-            db.commit()
-            print("update")
-        else:
-            sql = "INSERT INTO NEW_PRODUCT_ACCESSORY(shop_id, sku, image, published_at, created_at, updated_at, deleted_at)\
-               VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}')".format(each_product[0], str(each_product[1].strip().upper()), str(each_product[2].strip()), int(published_date), int(time.time()), int(time.time()), "0")
-            print("insert")
-            cursor.execute(sql)
-            db.commit()
 
-except MySQLdb.Error as e:
-        print ("Error %d: %s" % (e.args[0], e.args[1]))
-        db.rollback()
-db.close()
-
-#==============================================================================
-# INSERT INTO def (catid, title, page, publish)
-# SELECT catid, title, 'page','yes' from `abc`
-# 一次 query 多筆和每個迴圈都多 query 一次
-#==============================================================================
- # 透過 product 的 id 去撈 product_description 的內容
 def mk_lan_dic():
     lan_list = ['en', 'zh-cn', 'de-de', 'fr-fr', 'it-it', 'zh-tw', 'nl-nl', 'ja-jp', 'en-uk', 'en-us', 'es-es', 'pt-pt', 'ru']
     code = ['en', 'cn', 'de-DE', 'fr', 'it', 'tw', 'nl', 'jp', 'UKE', 'USE', 'es', 'pt-br', 'ru']
@@ -151,7 +102,7 @@ def parse(text):
         regex3 = r"(Description..|EAN:|UPC:|EAN / UPC:|EAN/UPC:)(.*?[A-z \/\\<>0-9].)(\\t|\\n)"
         if "描述" in text or "國際條碼" in text or "統一商品條碼" in text:
             regex = regex2
-        elif "EAN / UPC" in text:
+        elif ("EAN / UPC" in text) or ("EAN/UPC" in text):
             regex = regex3
         else:
             regex = regex1
@@ -203,7 +154,7 @@ def UPC(parsedList):
             else:
                 return int(temp[1].strip().replace("\r", "").replace("\\n", ""))
 
-def EAN_UPC(parsedList):
+def EAN_UPC_0(parsedList):
     if parsedList == '':
         return 0
     else:
@@ -216,6 +167,90 @@ def EAN_UPC(parsedList):
             else:
                 ean, upc = temp[1].split('/')
                 return ean.strip(), upc.strip()
+
+def EAN_UPC(parsedList):
+    temp = parsedList[:]
+    str1 = ''.join(temp)
+    if parsedList == '':
+        ean, upc = 0, 0
+    else:     
+        if ('EAN:' in str1) or ('\\nUPC:' in str1):
+            print("HERE1")
+            ean = str1.split('EAN:')[1].split('\\n')[0].strip()
+            upc = str1.split('\\nUPC:')[1].split('\\n')[0].strip()
+        elif ('EAN' not in str1) and ('UPC' not in str1):
+            print("HERE2")
+            ean, upc = 0, 0
+        else:
+            print("HERE3")
+            ean = str1.split('UPC:')[1].split('/')[0].strip()
+            upc = str1.split('UPC:')[1].split('/')[1].strip().strip('\\n')
+    return ean, upc
+        
+
+         
+test = EAN_UPC(parsed_des)
+
+
+# fetch product as a table
+try:
+    db = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
+    sql = "SELECT `product_id`, `model`, `image`, `date_available` FROM `product`"
+    cursor = db.cursor()
+    cursor.execute(sql)
+    product_accessory = cursor.fetchall() # product_accessory table from product
+except MySQLdb.Error as e:
+    print ("Error %d: %s" % (e.args[0], e.args[1]))
+    db.rollback()
+db.close()
+            
+# table 1 NEW_PRODUCT_ACCESSORY
+try:
+    db_yen = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
+    db_cart = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
+    cursor_yen = db_yen.cursor()
+    cursor_cart = db_cart.cursor()
+    for each_product in product_accessory:
+        sql_des = "SELECT `description` FROM `product_description` WHERE product_id = {}".format(each_product[0])
+        cursor_cart.execute(sql_des)
+        pre_description = cursor_cart.fetchall()
+        parsed_des = parse(pre_description[0][0])
+        ean = EAN_UPC(parsed_des)[0]
+        upc = EAN_UPC(parsed_des)[1]
+#        sku = each_product[1].strip()
+#        image = each_product[2].strip()
+        published_date = time.mktime(datetime.datetime.strptime(str(each_product[3]), "%Y-%m-%d").timetuple())
+        sql_check = "SELECT `shop_id`, `sku`, `image` FROM `new_product_accessory` WHERE sku = '{}'".format(str(each_product[1].strip()))
+        print(each_product[1])
+        check = cursor_yen.execute(sql_check)
+        res = cursor_yen.fetchall()
+        if check == 1:
+#            if res[0][0].strip() != str(each_product[1].strip()):
+            sql = "UPDATE `new_product_accessory` SET image = '{}', ean = {}, upc = {}, updated_at = '{}' WHERE sku = '{}'".format(str(each_product[2].strip()), int(ean), int(upc), int(time.time()), str(each_product[1].strip()))
+            cursor_yen.execute(sql)
+            db_yen.commit()
+            print("update")
+        else:
+            sql = "INSERT INTO NEW_PRODUCT_ACCESSORY(shop_id, sku, image, ean, upc, published_at, created_at, updated_at, deleted_at)\
+               VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}')".format(each_product[0], str(each_product[1].strip().upper()), str(each_product[2].strip()), int(ean), int(upc), int(published_date), int(time.time()), int(time.time()), "0")
+            print("insert")
+            cursor_yen.execute(sql)
+            db_yen.commit()
+
+except MySQLdb.Error as e:
+        print ("Error %d: %s" % (e.args[0], e.args[1]))
+        db_yen.rollback()
+        db_cart.rollback()
+db_yen.close()
+db_cart.close() 
+
+#==============================================================================
+# INSERT INTO def (catid, title, page, publish)
+# SELECT catid, title, 'page','yes' from `abc`
+# 一次 query 多筆和每個迴圈都多 query 一次
+#==============================================================================
+ # 透過 product 的 id 去撈 product_description 的內容
+
 
 # table 2
 
