@@ -100,10 +100,13 @@ def parse(text):
         regex1 = r"(Description..|EAN:|UPC:)(.*?[A-z \/\\<>0-9].)(\\t|\\n)"
         regex2 = r"(描述..|EAN.:|UPC.:)(.*?[A-z \/\\<>0-9].)(\\t|\\n)"
         regex3 = r"(Description..|EAN:|UPC:|EAN / UPC:|EAN/UPC:)(.*?[A-z \/\\<>0-9].)(\\t|\\n)"
+        regex4 = r"(Description..|EAN :|UPC :)(.*?[A-z \/\\<>0-9].)(\\t|\\n)"
         if "描述" in text or "國際條碼" in text or "統一商品條碼" in text:
             regex = regex2
         elif ("EAN / UPC" in text) or ("EAN/UPC" in text):
             regex = regex3
+        elif ('EAN :' in text) or ('UPC :' in text):
+            regex = regex4
         else:
             regex = regex1
         matches = re.finditer(regex, AA)
@@ -178,6 +181,10 @@ def EAN_UPC(parsedList):
             print("HERE1")
             ean = str1.split('EAN:')[1].split('\\n')[0].strip()
             upc = str1.split('\\nUPC:')[1].split('\\n')[0].strip()
+        elif ('EAN :' in str1) or ('\\nUPC :' in str1):
+            print("HERE4")
+            ean = str1.split('EAN :')[1].split('\\n')[0].strip()
+            upc = str1.split('\\nUPC :')[1].split('\\n')[0].strip()
         elif ('EAN' not in str1) and ('UPC' not in str1):
             print("HERE2")
             ean, upc = 0, 0
