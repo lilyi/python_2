@@ -19,8 +19,8 @@ try:
         `shop_id` INT(11)  NOT NULL,
         `sku` varchar(64) DEFAULT NULL,
         `image` varchar(255) DEFAULT NULL,
-        `ean` int(100) DEFAULT NULL,
-        `upc` int(100) DEFAULT NULL,
+        `ean` bigint(100) DEFAULT NULL,
+        `upc` bigint(100) DEFAULT NULL,
         `published_at` int(11) NOT NULL DEFAULT '0',
         `created_at` int(11) NOT NULL DEFAULT '0',
         `updated_at` int(11) NOT NULL DEFAULT '0',
@@ -189,7 +189,7 @@ def EAN_UPC(parsedList):
         
 
          
-test = EAN_UPC(parsed_des)
+#test = EAN_UPC(parsed_des)
 
 
 # fetch product as a table
@@ -216,7 +216,9 @@ try:
         pre_description = cursor_cart.fetchall()
         parsed_des = parse(pre_description[0][0])
         ean = EAN_UPC(parsed_des)[0]
+        print(ean)
         upc = EAN_UPC(parsed_des)[1]
+        print(upc)
 #        sku = each_product[1].strip()
 #        image = each_product[2].strip()
         published_date = time.mktime(datetime.datetime.strptime(str(each_product[3]), "%Y-%m-%d").timetuple())
@@ -226,15 +228,15 @@ try:
         res = cursor_yen.fetchall()
         if check == 1:
 #            if res[0][0].strip() != str(each_product[1].strip()):
-            sql = "UPDATE `new_product_accessory` SET image = '{}', ean = {}, upc = {}, updated_at = '{}' WHERE sku = '{}'".format(str(each_product[2].strip()), int(ean), int(upc), int(time.time()), str(each_product[1].strip()))
-            cursor_yen.execute(sql)
+            sql_update = "UPDATE `new_product_accessory` SET image = '{}', ean = '{}', upc = '{}', updated_at = '{}' WHERE sku = '{}'".format(str(each_product[2].strip()), int(ean), int(upc), int(time.time()), str(each_product[1].strip()))
+            cursor_yen.execute(sql_update)
             db_yen.commit()
             print("update")
         else:
-            sql = "INSERT INTO NEW_PRODUCT_ACCESSORY(shop_id, sku, image, ean, upc, published_at, created_at, updated_at, deleted_at)\
+            sql_insert = "INSERT INTO NEW_PRODUCT_ACCESSORY(shop_id, sku, image, ean, upc, published_at, created_at, updated_at, deleted_at)\
                VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}')".format(each_product[0], str(each_product[1].strip().upper()), str(each_product[2].strip()), int(ean), int(upc), int(published_date), int(time.time()), int(time.time()), "0")
             print("insert")
-            cursor_yen.execute(sql)
+            cursor_yen.execute(sql_insert)
             db_yen.commit()
 
 except MySQLdb.Error as e:
