@@ -95,13 +95,17 @@ def parse(text):
     else:
         B = html.unescape(text)
         C = strip_tags(B)
+        if ("Description" not in C) and ("EAN" in C): # 若沒有描述的標頭則加上標頭 (此處中文內容也會加上，但在後續不影響結果)
+            C = "Description: " + C
+        else:
+            C = C
         rep = {"\n":"\\n", "\t": "\\t", "\xa0": " "}
         AA = replace_all(C, rep)
         regex1 = r"(Description..|EAN:|UPC:)(.*?[A-z \/\\<>0-9].)(\\t|\\n)"
         regex2 = r"(描述..|EAN.:|UPC.:)(.*?[A-z \/\\<>0-9].)(\\t|\\n)"
         regex3 = r"(Description..|EAN:|UPC:|EAN / UPC:|EAN/UPC:)(.*?[A-z \/\\<>0-9].)(\\t|\\n)"
         regex4 = r"(Description..|EAN :|UPC :)(.*?[A-z \/\\<>0-9].)(\\t|\\n)"
-        if "描述" in text or "國際條碼" in text or "統一商品條碼" in text:
+        if ("描述" in text) or ("國際條碼" in text) or ("統一商品條碼" in text):
             regex = regex2
         elif ("EAN / UPC" in text) or ("EAN/UPC" in text):
             regex = regex3
@@ -117,19 +121,22 @@ def parse(text):
                 groupNum = groupNum + 1
                 res.append(match.group(groupNum))
         return res
- 
+
 def descript(parsedList): # description
-    if parsedList == '':
+    temp = parsedList[:]
+    str1 = ''.join(temp)
+    if parsedList == '': # 原本 Description 欄位中就沒有內容者回傳 0
         return 0
     else:
-        temp = parsedList[:]
-        while True:
-            if ("Description" or "描述") not in temp[0]:
-                temp.pop(0)
-                if len(temp) == 0:
-                    return 0
-            else:
-                return temp[1].strip().replace("\r", "").replace("\\n", "")
+        if "描述" in str1:
+            des = str1.split("描述:")[1].split("\\n")[0].strip()
+        elif "Description:" in str1:
+            des = str1.split("Description:")[1].split("\\n")[0].strip()
+        elif "Description :" in str1:
+            des = str1.split("Description :")[1].split("\\n")[0].strip()
+        else:
+            des = "no"
+        return des
 
 def EAN(parsedList):
     if parsedList == '':
@@ -193,11 +200,6 @@ def EAN_UPC(parsedList):
             ean = str1.split('UPC:')[1].split('/')[0].strip()
             upc = str1.split('UPC:')[1].split('/')[1].strip().strip('\\n')
     return ean, upc
-        
-
-         
-#test = EAN_UPC(parsed_des)
-
 
 # fetch product as a table
 try:
@@ -259,11 +261,16 @@ db_cart.close()
 # 一次 query 多筆和每個迴圈都多 query 一次
 #==============================================================================
  # 透過 product 的 id 去撈 product_description 的內容
-
+db_yen = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
+db_cart = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
+cursor_yen = db_yen.cursor()
+cursor_cart = db_cart.cursor()
+sql01 = "SELECT ``"
 
 # table 2
 
 def table2():
+    check_des = []
     try:
         db_yen = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
         db_cart = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
@@ -287,17 +294,8 @@ def table2():
             locale = lan_dic[lanCode[0][0]] # locale
             parsed = parse(descrip_cart)
             description = descript(parsed) # description
-#==============================================================================
-#             decode_html = html.unescape(descrip_cart)
-#             strip_html = strip_tags(decode_html)
-#             if "EAN / UPC" in strip_html or "EAN/UPC" in strip_html:
-#                 ean = EAN_UPC(parsed)[0]
-#                 upc = EAN_UPC(parsed)[1]
-#             else:
-#                 ean = EAN(parsed)
-#                 upc = UPC(parsed)
-#==============================================================================
-#            description = descript(descrip_cart) # description
+            if description == "no":
+                check_des.append(descrip_cart)
             sql_insert = "INSERT INTO NEW_PRODUCT_ACCESSORY_DETAIL(accessory_id, \
                     locale, name, description, created_at, updated_at, deleted_at)\
                     VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}') \
@@ -320,6 +318,16 @@ taken = round(tStop - tStart)
 print("Done!\n")
 print("Time taken: ", round(taken//60), "(m)", round(taken%60), "(s)")        
 
+#==============================================================================
+# result = []
+# for text in check_des:
+#     B = html.unescape(text)
+#     C = strip_tags(B)
+#     rep = {"\n":"\\n", "\t": "\\t", "\xa0": " "}
+#     AA = replace_all(C, rep)
+#     str2 = ''.join(AA)
+#     result.append(str2)
+#==============================================================================
 
 # table 3
 tStart = time.time()
