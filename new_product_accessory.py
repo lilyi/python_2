@@ -126,7 +126,7 @@ def descript(parsedList): # description
     temp = parsedList[:]
     str1 = ''.join(temp)
     if parsedList == '': # 原本 Description 欄位中就沒有內容者回傳 0
-        return 0
+        return ''
     else:
         if "描述" in str1:
             des = str1.split("描述:")[1].split("\\n")[0].strip()
@@ -261,11 +261,13 @@ db_cart.close()
 # 一次 query 多筆和每個迴圈都多 query 一次
 #==============================================================================
  # 透過 product 的 id 去撈 product_description 的內容
-db_yen = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
-db_cart = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
-cursor_yen = db_yen.cursor()
-cursor_cart = db_cart.cursor()
-sql01 = "SELECT ``"
+#==============================================================================
+# db_yen = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
+# db_cart = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
+# cursor_yen = db_yen.cursor()
+# cursor_cart = db_cart.cursor()
+# sql01 = "SELECT ``"
+#==============================================================================
 
 # table 2
 
@@ -294,7 +296,7 @@ def table2():
             locale = lan_dic[lanCode[0][0]] # locale
             parsed = parse(descrip_cart)
             description = descript(parsed) # description
-            if description == "no":
+            if description == '':
                 check_des.append(descrip_cart)
             sql_insert = "INSERT INTO NEW_PRODUCT_ACCESSORY_DETAIL(accessory_id, \
                     locale, name, description, created_at, updated_at, deleted_at)\
