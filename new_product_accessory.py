@@ -13,6 +13,7 @@ from html.parser import HTMLParser
 # create 3 tables
 try:
     db = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
+#    db = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="yen_nas", charset='utf8')    
     cursor = db.cursor()
     sqls = ['''CREATE TABLE IF NOT EXISTS `new_product_accessory` (
         `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -138,46 +139,6 @@ def descript(parsedList): # description
             des = "no"
         return des
 
-def EAN(parsedList):
-    if parsedList == '':
-        return 0
-    else:
-        temp = parsedList[:]
-        while True:
-            if ("EAN" or "國際條碼") not in temp[0]:
-                temp.pop(0)
-                if len(temp) == 0:
-                    return 0
-            else:
-                return int(temp[1].strip().replace("\r", "").replace("\\n", ""))
-
-def UPC(parsedList):
-    if parsedList == '':
-        return 0
-    else:
-        temp = parsedList[:]
-        while True:
-            if ("UPC" or "統一商品條碼") not in temp[0]:
-                temp.pop(0)
-                if len(temp) == 0:
-                    return 0
-            else:
-                return int(temp[1].strip().replace("\r", "").replace("\\n", ""))
-
-def EAN_UPC_0(parsedList):
-    if parsedList == '':
-        return 0
-    else:
-        temp = parsedList[:]
-        while True:
-            if ("EAN / UPC" not in temp[0]) or ("EAN/UPC" not in temp[0]):
-                temp.pop(0)
-                if len(temp) == 0:
-                    return 0
-            else:
-                ean, upc = temp[1].split('/')
-                return ean.strip(), upc.strip()
-
 def EAN_UPC(parsedList):
     temp = parsedList[:]
     str1 = ''.join(temp)
@@ -204,6 +165,7 @@ def EAN_UPC(parsedList):
 # fetch product as a table
 try:
     db = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
+#    db = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="open_cart", charset='utf8')
     sql = "SELECT `product_id`, `model`, `image`, `date_available` FROM `product`"
     cursor = db.cursor()
     cursor.execute(sql)
@@ -216,7 +178,9 @@ db.close()
 # table 1 NEW_PRODUCT_ACCESSORY
 try:
     db_yen = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
+#    db_yen = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="yen_nas", charset='utf8')
     db_cart = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
+#    db_cart = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="open_cart", charset='utf8')
     cursor_yen = db_yen.cursor()
     cursor_cart = db_cart.cursor()
     for each_product in product_accessory:
@@ -275,7 +239,9 @@ def table2():
     check_des = []
     try:
         db_yen = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
+#        db_yen = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="yen_nas", charset='utf8')
         db_cart = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
+#        db = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="open_cart", charset='utf8')
         cursor_yen = db_yen.cursor()
         cursor_cart = db_cart.cursor()
         sql1 = "SELECT `product_id`, `language_id`, `name`, `description` FROM `product_description`"
@@ -338,9 +304,12 @@ TS = []
 TS_SET = []
 VS = []
 VS_SET = []
+search_sku_list = []
 try:
     db_yen = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
+#    db_yen = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="yen_nas", charset='utf8')
     db_cart = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
+#    db = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="open_cart", charset='utf8')
     cursor_yen = db_yen.cursor()
     cursor_cart = db_cart.cursor()
     sql1 = "SELECT `product_id`, `category_id` FROM `product_to_category`"
@@ -373,6 +342,34 @@ try:
                 VS.append([sku_name[0][0], category_id])
             else:
                 TS.append([sku_name[0][0], category_id])
+                TS_SET = []
+                for i in TS:
+                    TS_SET.append(i[0])
+                TSSET = set(TS_SET)
+#==============================================================================
+#                 if "420/421" in sku_name[0][0]:
+#                     print("420/421")
+#                     search_sku = [[sku_name[0][0].split("/")[0], "TS-" + sku_name[0][0].split("/")[1]]]
+#                     break;
+#                 elif "/" in sku_name[0][0]:
+#                     search_sku = [sku_name[0][0].split("/")[0].strip()]
+#                 elif "Series" in sku_name[0][0]:
+#                     search_sku = [sku_name[0][0].split(" ")[0].strip()]
+#                 else:
+#                     search_sku = [sku_name[0][0].split("U")[0].strip() + "U"]
+#                 search_sku_list.append(search_sku)
+#                 for each_sku in search_sku:
+#                     sql6 = "SELECT `ItemID` FROM `product_items` WHERE `temp_name` LIKE '%{}%'".format(each_sku) # 可能找不到對應 temp_name
+#                     cursor_yen.execute(sql6)
+#                     ItemIDs = cursor_yen.fetchall() # 
+#                     for ID in ItemIDs:
+#                         print(ID)
+#                         sql_insert = "INSERT INTO NEW_PRODUCT_ACCESSORY_RELATED(accessory_id, product_id, created_at, updated_at, deleted_at)\
+#                          VALUES ('{}', '{}', '{}', '{}', '{}') ON DUPLICATE KEY UPDATE accessory_id ='{}', product_id = '{}', updated_at='{}'"\
+#                             .format(access_id[0][0], ID[0], int(time.time()), int(time.time()), "0", access_id[0][0], ID[0], int(time.time()))
+#                         cursor_yen.execute(sql_insert)
+#                         db_yen.commit()
+#==============================================================================
             
 except MySQLdb.Error as e:
         print ("Error %d: %s" % (e.args[0], e.args[1]))
@@ -386,10 +383,9 @@ print("Done!\n")
 print("Time taken: ", round(taken//60), "(m)", round(taken%60), "(s)")
 print("TS = {}".format(len(TS)))
 print("VS = {}".format(len(VS)))
-TS_SET = []
-for i in TS:
-    TS_SET.append(i[0])
-TSSET = set(TS_SET)
+
+
+    
 
 # 驗證
 #==============================================================================
@@ -416,3 +412,11 @@ TSSET = set(TS_SET)
 # resu2 = cursor1.fetchall()
 # db1.close()
 #==============================================================================
+
+product_items = ["HS-251", "HS-251+", "TS-109 II", "TS-109 Pro II", "TS-109", "TS-109 Pro", "TS-112", "TS-112P", "TS-212", "TS-212P", "TS-212-E", "TS-239H", "TS-239 Pro", "TS-239 Pro II", "TS-239 Pro II+", "TS-420U", "TS-420", "TS-420-D", "TS-421U", "TS-421", "TS-439U-RP/ SP", "TS-459U-RP/SP", "TS-459U-RP+/SP+", "TS-469U-RP", "TS-469U-SP", "TS-470U-RP", "TS-470U-SP", "TS-EC1280U", "TS-EC1280U R2", "TS-EC1680U", "TS-EC1680U R2", "TS-EC2480U R2", "TS-EC2480U", "TS-EC880U", "TS-EC880U R2", "TVS-882ST2", "TVS-882ST3"]
+len(product_items)
+
+
+
+
+
