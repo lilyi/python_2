@@ -96,10 +96,10 @@ def parse(text):
     else:
         B = html.unescape(text)
         C = strip_tags(B)
-        if ("Description" not in C) and ("EAN" in C): # 若沒有描述的標頭則加上標頭 (此處中文內容也會加上，但在後續不影響結果)
-            C = "Description: " + C
-        else:
-            C = C
+#        if ("Description" not in C) and ("EAN" in C): # 若沒有描述的標頭則加上標頭 (此處中文內容也會加上，但在後續不影響結果)
+#            C = "Description: " + C
+#        else:
+#            C = C
         rep = {"\n":"\\n", "\t": "\\t", "\xa0": " "}
         AA = replace_all(C, rep)
         regex1 = r"(Description..|EAN:|UPC:)(.*?[A-z \/\\<>0-9].)(\\t|\\n)"
@@ -126,7 +126,7 @@ def parse(text):
 def descript(parsedList): # description
     temp = parsedList[:]
     str1 = ''.join(temp)
-    if parsedList == '': # 原本 Description 欄位中就沒有內容者回傳 0
+    if parsedList == '': # 原本 Description 欄位中就沒有內容者回傳 ''
         return ''
     else:
         if "描述" in str1:
@@ -237,6 +237,8 @@ db_cart.close()
 
 def table2():
     check_des = []
+    check_parsed = []
+    check_accessID = []
     try:
         db_yen = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
 #        db_yen = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="yen_nas", charset='utf8')
@@ -261,9 +263,24 @@ def table2():
             lan_dic = mk_lan_dic()
             locale = lan_dic[lanCode[0][0]] # locale
             parsed = parse(descrip_cart)
+            if parsed == "": # 驗證所以""的描述都來自於資料庫本身沒有資料 經過 parse function 的 else 出來的都是 list
+                check_parsed.append(descrip_cart)
             description = descript(parsed) # description
-            if description == '':
+            if description == '': 
                 check_des.append(descrip_cart)
+            if description == 'no' and locale != "zh-tw" and locale != "zh-cn":
+                check_accessID.append(accessID)
+                sql5 = "SELECT `description` FROM `new_product_accessory_detail` \
+                WHERE `locale` = 'en' AND `accessory_id` = {}".format(accessID[0][0])
+                cursor_yen.execute(sql5)
+                pre_description = cursor_yen.fetchall()    
+                description = pre_description[0][0]
+            if name == "" and locale != "zh-tw" and locale != "zh-cn":
+                sql6 = "SELECT `name` FROM `new_product_accessory_detail` \
+                WHERE `locale` = 'en' AND `accessory_id` = {}".format(accessID[0][0])
+                cursor_yen.execute(sql6)
+                pre_name = cursor_yen.fetchall()    
+                name = pre_name[0][0]
             sql_insert = "INSERT INTO NEW_PRODUCT_ACCESSORY_DETAIL(accessory_id, \
                     locale, name, description, created_at, updated_at, deleted_at)\
                     VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}') \
@@ -413,9 +430,29 @@ print("VS = {}".format(len(VS)))
 # db1.close()
 #==============================================================================
 
-product_items = ["HS-251", "HS-251+", "TS-109 II", "TS-109 Pro II", "TS-109", "TS-109 Pro", "TS-112", "TS-112P", "TS-212", "TS-212P", "TS-212-E", "TS-239H", "TS-239 Pro", "TS-239 Pro II", "TS-239 Pro II+", "TS-420U", "TS-420", "TS-420-D", "TS-421U", "TS-421", "TS-439U-RP/ SP", "TS-459U-RP/SP", "TS-459U-RP+/SP+", "TS-469U-RP", "TS-469U-SP", "TS-470U-RP", "TS-470U-SP", "TS-EC1280U", "TS-EC1280U R2", "TS-EC1680U", "TS-EC1680U R2", "TS-EC2480U R2", "TS-EC2480U", "TS-EC880U", "TS-EC880U R2", "TVS-882ST2", "TVS-882ST3"]
-len(product_items)
-
+#==============================================================================
+# product_items = ["HS-251", "HS-251+", "TS-109 II", "TS-109 Pro II", "TS-109", "TS-109 Pro", "TS-112", "TS-112P", "TS-212", "TS-212P", "TS-212-E", "TS-239H", "TS-239 Pro", "TS-239 Pro II", "TS-239 Pro II+", "TS-420U", "TS-420", "TS-420-D", "TS-421U", "TS-421", "TS-439U-RP/ SP", "TS-459U-RP/SP", "TS-459U-RP+/SP+", "TS-469U-RP", "TS-469U-SP", "TS-470U-RP", "TS-470U-SP", "TS-EC1280U", "TS-EC1280U R2", "TS-EC1680U", "TS-EC1680U R2", "TS-EC2480U R2", "TS-EC2480U", "TS-EC880U", "TS-EC880U R2", "TVS-882ST2", "TVS-882ST3"]
+# len(product_items)
+# 
+# db_yen = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
+# #    db_yen = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="yen_nas", charset='utf8')
+# db_cart = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
+# #    db = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="open_cart", charset='utf8')
+# cursor_yen = db_yen.cursor()
+# cursor_cart = db_cart.cursor()
+# sql1 = "SELECT `id`, `shop_id`, `sku`, `image`, `ean`, `upc` FROM `new_product_accessory` WHERE `sku` = ''"
+# sql2 = "SELECT `id`, `shop_id`, `sku`, `image`, `ean`, `upc` FROM `new_product_accessory` WHERE `image` = ''"
+# cursor_yen.execute(sql1)
+# cursor_yen.execute(sql2)
+# noSku = cursor_yen.fetchall()
+# noImage = cursor_yen.fetchall()
+# db_yen.close()
+# db_cart.close()
+# 
+# db_yen = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
+# cursor_yen = db_yen.cursor()
+# sql3 = "SELECT DISTINCT `accessory_id` FROM `new_product_accessory_detail` WHERE `description` = ''"
+#==============================================================================
 
 
 
