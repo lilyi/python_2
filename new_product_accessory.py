@@ -268,14 +268,21 @@ def table2():
             description = descript(parsed) # description
             if description == '': 
                 check_des.append(descrip_cart)
-            if description == 'no' and locale != "zh-tw" and locale != "zh-cn":
+            if description == 'no':
                 check_accessID.append(accessID)
                 sql5 = "SELECT `description` FROM `new_product_accessory_detail` \
                 WHERE `locale` = 'en' AND `accessory_id` = {}".format(accessID[0][0])
                 cursor_yen.execute(sql5)
                 pre_description = cursor_yen.fetchall()    
                 description = pre_description[0][0]
-            if name == "" and locale != "zh-tw" and locale != "zh-cn":
+            if description == '':
+#                check_accessID.append(accessID)
+                sql7 = "SELECT `description` FROM `new_product_accessory_detail` \
+                WHERE `locale` = 'en' AND `accessory_id` = {}".format(accessID[0][0])
+                cursor_yen.execute(sql7)
+                pre_description = cursor_yen.fetchall()    
+                description = pre_description[0][0]
+            if name == "" and locale != "zh-tw":
                 sql6 = "SELECT `name` FROM `new_product_accessory_detail` \
                 WHERE `locale` = 'en' AND `accessory_id` = {}".format(accessID[0][0])
                 cursor_yen.execute(sql6)
