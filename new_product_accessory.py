@@ -164,8 +164,8 @@ def EAN_UPC(parsedList):
 
 # fetch product as a table
 try:
-    db = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
-#    db = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="open_cart", charset='utf8')
+#    db = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
+    db = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="opencart", charset='utf8')
     sql = "SELECT `product_id`, `model`, `image`, `date_available` FROM `product`"
     cursor = db.cursor()
     cursor.execute(sql)
@@ -179,8 +179,8 @@ db.close()
 try:
     db_yen = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
 #    db_yen = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="yen_nas", charset='utf8')
-    db_cart = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
-#    db_cart = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="open_cart", charset='utf8')
+#    db_cart = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
+    db_cart = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="opencart", charset='utf8')
     cursor_yen = db_yen.cursor()
     cursor_cart = db_cart.cursor()
     for each_product in product_accessory:
@@ -189,9 +189,9 @@ try:
         pre_description = cursor_cart.fetchall()
         parsed_des = parse(pre_description[0][0])
         ean = EAN_UPC(parsed_des)[0]
-        print(ean)
+#        print(ean)
         upc = EAN_UPC(parsed_des)[1]
-        print(upc)
+#        print(upc)
 #        sku = each_product[1].strip()
 #        image = each_product[2].strip()
         published_date = time.mktime(datetime.datetime.strptime(str(each_product[3]), "%Y-%m-%d").timetuple())
@@ -242,8 +242,8 @@ def table2():
     try:
         db_yen = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
 #        db_yen = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="yen_nas", charset='utf8')
-        db_cart = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
-#        db = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="open_cart", charset='utf8')
+#        db_cart = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
+        db_cart = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="opencart", charset='utf8')
         cursor_yen = db_yen.cursor()
         cursor_cart = db_cart.cursor()
         sql1 = "SELECT `product_id`, `language_id`, `name`, `description` FROM `product_description`"
@@ -266,28 +266,29 @@ def table2():
             if parsed == "": # 驗證所以""的描述都來自於資料庫本身沒有資料 經過 parse function 的 else 出來的都是 list
                 check_parsed.append(descrip_cart)
             description = descript(parsed) # description
-            if description == '': 
+            if description == "": 
                 check_des.append(descrip_cart)
-            if description == 'no':
+            if description == "no":
                 check_accessID.append(accessID)
                 sql5 = "SELECT `description` FROM `new_product_accessory_detail` \
                 WHERE `locale` = 'en' AND `accessory_id` = {}".format(accessID[0][0])
                 cursor_yen.execute(sql5)
                 pre_description = cursor_yen.fetchall()    
                 description = pre_description[0][0]
-            if description == '':
+            if description == "":
 #                check_accessID.append(accessID)
                 sql7 = "SELECT `description` FROM `new_product_accessory_detail` \
                 WHERE `locale` = 'en' AND `accessory_id` = {}".format(accessID[0][0])
                 cursor_yen.execute(sql7)
                 pre_description = cursor_yen.fetchall()    
                 description = pre_description[0][0]
-            if name == "" and locale != "zh-tw":
+            if name == "":
                 sql6 = "SELECT `name` FROM `new_product_accessory_detail` \
                 WHERE `locale` = 'en' AND `accessory_id` = {}".format(accessID[0][0])
                 cursor_yen.execute(sql6)
                 pre_name = cursor_yen.fetchall()    
                 name = pre_name[0][0]
+                print("pre_name: " + pre_name[0][0])
             sql_insert = "INSERT INTO NEW_PRODUCT_ACCESSORY_DETAIL(accessory_id, \
                     locale, name, description, created_at, updated_at, deleted_at)\
                     VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}') \
@@ -332,8 +333,8 @@ search_sku_list = []
 try:
     db_yen = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
 #    db_yen = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="yen_nas", charset='utf8')
-    db_cart = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
-#    db = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="open_cart", charset='utf8')
+#    db_cart = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
+    db_cart = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="opencart", charset='utf8')
     cursor_yen = db_yen.cursor()
     cursor_cart = db_cart.cursor()
     sql1 = "SELECT `product_id`, `category_id` FROM `product_to_category`"
