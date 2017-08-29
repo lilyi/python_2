@@ -266,8 +266,12 @@ def table2():
             if parsed == "": # 驗證所以""的描述都來自於資料庫本身沒有資料 經過 parse function 的 else 出來的都是 list
                 check_parsed.append(descrip_cart)
             description = descript(parsed) # description
+            if pID == 209:
+                print("209!")
+                description = "USB 3.1 Gen 2 10Gbps Type-A Dual-port PCIe Card"
             if description == "": 
                 check_des.append(descrip_cart)
+            
             if description == "no":
                 check_accessID.append(accessID)
                 sql5 = "SELECT `description` FROM `new_product_accessory_detail` \
@@ -275,6 +279,7 @@ def table2():
                 cursor_yen.execute(sql5)
                 pre_description = cursor_yen.fetchall()    
                 description = pre_description[0][0]
+            
             if description == "":
 #                check_accessID.append(accessID)
                 sql7 = "SELECT `description` FROM `new_product_accessory_detail` \
@@ -282,13 +287,14 @@ def table2():
                 cursor_yen.execute(sql7)
                 pre_description = cursor_yen.fetchall()    
                 description = pre_description[0][0]
+            
             if name == "":
                 sql6 = "SELECT `name` FROM `new_product_accessory_detail` \
                 WHERE `locale` = 'en' AND `accessory_id` = {}".format(accessID[0][0])
                 cursor_yen.execute(sql6)
                 pre_name = cursor_yen.fetchall()    
                 name = pre_name[0][0]
-                print("pre_name: " + pre_name[0][0])
+#                print("pre_name: " + pre_name[0][0])
             sql_insert = "INSERT INTO NEW_PRODUCT_ACCESSORY_DETAIL(accessory_id, \
                     locale, name, description, created_at, updated_at, deleted_at)\
                     VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}') \
