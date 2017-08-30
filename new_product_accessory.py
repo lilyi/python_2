@@ -266,11 +266,11 @@ def table2():
             if parsed == "": # 驗證所以""的描述都來自於資料庫本身沒有資料 經過 parse function 的 else 出來的都是 list
                 check_parsed.append(descrip_cart)
             description = descript(parsed) # description
-            if pID == 209:
-                print("209!")
-                description = "USB 3.1 Gen 2 10Gbps Type-A Dual-port PCIe Card"
-            if description == "": 
-                check_des.append(descrip_cart)
+#            if pID == 209:
+#                print("209!")
+#                description = " "
+#            if description == "": 
+#                check_des.append(descrip_cart)
             
             if description == "no":
                 check_accessID.append(accessID)
