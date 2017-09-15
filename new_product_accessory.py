@@ -8,8 +8,6 @@ Created on Tue Aug  8 10:57:25 2017
 import html, MySQLdb, time, datetime, re
 from html.parser import HTMLParser
 
-# get DB data
-#db = MySQLdb.connect(host="10.8.2.125", user=" ", passwd=" ", db="yen_nas", charset='utf8')
 # create 3 tables
 try:
     db = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
@@ -64,7 +62,6 @@ def mk_lan_dic():
         lan_dic[code[idx]] = lan_list[idx]
     return lan_dic
 
-
 class MLStripper(HTMLParser):
     def __init__(self):
         self.reset()
@@ -85,7 +82,6 @@ def replace_all(text, dic):
     for i, j in dic.items():
         text = text.replace(i, j)
     return text
-
 
 def parse(text):
     '''input: encoded html
@@ -219,114 +215,106 @@ except MySQLdb.Error as e:
 db_yen.close()
 db_cart.close() 
 
-#==============================================================================
-# INSERT INTO def (catid, title, page, publish)
-# SELECT catid, title, 'page','yes' from `abc`
-# 一次 query 多筆和每個迴圈都多 query 一次
-#==============================================================================
- # 透過 product 的 id 去撈 product_description 的內容
-#==============================================================================
-# db_yen = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
-# db_cart = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
-# cursor_yen = db_yen.cursor()
-# cursor_cart = db_cart.cursor()
-# sql01 = "SELECT ``"
-#==============================================================================
+
 
 # table 2
 
-def table2():
-    check_des = []
-    check_parsed = []
-    check_accessID = []
-    try:
-        db_yen = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
+#def table2():
+#    check_des = []
+check_parsed = []
+check_accessID = []
+try:
+    db_yen = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
 #        db_yen = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="yen_nas", charset='utf8')
 #        db_cart = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
-        db_cart = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="opencart", charset='utf8')
-        cursor_yen = db_yen.cursor()
-        cursor_cart = db_cart.cursor()
-        sql1 = "SELECT `product_id`, `language_id`, `name`, `description` FROM `product_description`"
-        cursor_cart.execute(sql1)
-        product_description = cursor_cart.fetchall()
-        for each_pd_lan in product_description:
-            pID, lanID, name, descrip_cart = each_pd_lan[0], each_pd_lan[1], each_pd_lan[2], each_pd_lan[3]  # name
-            sql2 = "SELECT `model` FROM `product` WHERE `product_id` = {}".format(pID)
-            cursor_cart.execute(sql2)
-            model = cursor_cart.fetchall()
-            sql3 = "SELECT `id` FROM `new_product_accessory` WHERE `sku` = '{}'".format(model[0][0].strip().upper())
-            cursor_yen.execute(sql3)
-            accessID = cursor_yen.fetchall() # id
-            sql4 = "SELECT `code` FROM `language` WHERE `language_id` = {}".format(lanID)
-            cursor_cart.execute(sql4)
-            lanCode = cursor_cart.fetchall()
-            lan_dic = mk_lan_dic()
-            locale = lan_dic[lanCode[0][0]] # locale
-            parsed = parse(descrip_cart)
-            if parsed == "": # 驗證所以""的描述都來自於資料庫本身沒有資料 經過 parse function 的 else 出來的都是 list
-                check_parsed.append(descrip_cart)
-            description = descript(parsed) # description
+    db_cart = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="opencart", charset='utf8')
+    cursor_yen = db_yen.cursor()
+    cursor_cart = db_cart.cursor()
+    sql1 = "SELECT `product_id`, `language_id`, `name`, `description` FROM `product_description` ORDER BY `product_id`, `language_id`"
+    cursor_cart.execute(sql1)
+    product_description = cursor_cart.fetchall()
+    for each_pd_lan in product_description:
+        pID, lanID, name, descrip_cart = each_pd_lan[0], each_pd_lan[1], each_pd_lan[2], each_pd_lan[3]  # name
+        sql2 = "SELECT `model` FROM `product` WHERE `product_id` = {}".format(pID)
+        cursor_cart.execute(sql2)
+        model = cursor_cart.fetchall()
+        sql3 = "SELECT `id` FROM `new_product_accessory` WHERE `sku` = '{}'".format(model[0][0].strip().upper())
+        cursor_yen.execute(sql3)
+        accessID = cursor_yen.fetchall() # id
+        sql4 = "SELECT `code` FROM `language` WHERE `language_id` = {}".format(lanID)
+        cursor_cart.execute(sql4)
+        lanCode = cursor_cart.fetchall()
+        lan_dic = mk_lan_dic() # 應外移
+        locale = lan_dic[lanCode[0][0]] # locale
+        parsed = parse(descrip_cart)
+        if parsed == "": # 驗證所以""的描述都來自於資料庫本身沒有資料 經過 parse function 的 else 出來的都是 list
+            check_parsed.append(descrip_cart)
+        description = descript(parsed) # description
 #            if pID == 209:
 #                print("209!")
 #                description = " "
 #            if description == "": 
 #                check_des.append(descrip_cart)
-            
-            if description == "no":
-                check_accessID.append(accessID)
-                sql5 = "SELECT `description` FROM `new_product_accessory_detail` \
-                WHERE `locale` = 'en' AND `accessory_id` = {}".format(accessID[0][0])
-                cursor_yen.execute(sql5)
-                pre_description = cursor_yen.fetchall()    
-                description = pre_description[0][0]
-            
-            if description == "":
+        model_front = model[0][0].strip().upper().split("-")[0]
+        notNeed = ["SP", "BBU", "SCR", "FIXER", "PWR", "KIT", "KEY", "TRAY"]
+          
+        if description == "no":
+#            if model_front in notNeed:
+#                description = ""
+#            else:
+            check_accessID.append(accessID)
+            sql5 = "SELECT `description` FROM `new_product_accessory_detail` \
+            WHERE `locale` = 'en' AND `accessory_id` = {}".format(accessID[0][0])
+            cursor_yen.execute(sql5)
+            pre_description = cursor_yen.fetchall()    
+            description = pre_description[0][0]
+        
+        if description == "":
+#            if model_front in notNeed:
+#                description = ""
+            if pID == 144:
+                description = ""
+            else:
 #                check_accessID.append(accessID)
                 sql7 = "SELECT `description` FROM `new_product_accessory_detail` \
                 WHERE `locale` = 'en' AND `accessory_id` = {}".format(accessID[0][0])
                 cursor_yen.execute(sql7)
                 pre_description = cursor_yen.fetchall()    
                 description = pre_description[0][0]
-            
-            if name == "":
+        
+        if name == "":
+#            if model_front in notNeed:
+#                name = ""
+            if pID == 144:
+                name = ""
+            else:
                 sql6 = "SELECT `name` FROM `new_product_accessory_detail` \
                 WHERE `locale` = 'en' AND `accessory_id` = {}".format(accessID[0][0])
                 cursor_yen.execute(sql6)
                 pre_name = cursor_yen.fetchall()    
                 name = pre_name[0][0]
 #                print("pre_name: " + pre_name[0][0])
-            sql_insert = "INSERT INTO NEW_PRODUCT_ACCESSORY_DETAIL(accessory_id, \
-                    locale, name, description, created_at, updated_at, deleted_at)\
-                    VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}') \
-                    ON DUPLICATE KEY UPDATE name='{}', description = '{}',  updated_at='{}'"\
-                   .format(accessID[0][0], str(locale), str(name), str(description), \
-                           int(time.time()), int(time.time()), "0", str(name), str(description), int(time.time()))
-            cursor_yen.execute(sql_insert)
-            db_yen.commit()
-    except MySQLdb.Error as e:
-            print ("Error %d: %s" % (e.args[0], e.args[1]))
-            db_yen.rollback()
-            db_cart.rollback()
-    db_yen.close()
-    db_cart.close() 
+        sql_insert = "INSERT INTO NEW_PRODUCT_ACCESSORY_DETAIL(accessory_id, \
+                locale, name, description, created_at, updated_at, deleted_at)\
+                VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}') \
+                ON DUPLICATE KEY UPDATE name='{}', description = '{}',  updated_at='{}'"\
+               .format(accessID[0][0], str(locale), str(name), str(description), \
+                       int(time.time()), int(time.time()), "0", str(name), str(description), int(time.time()))
+        cursor_yen.execute(sql_insert)
+        db_yen.commit()
+except MySQLdb.Error as e:
+        print ("Error %d: %s" % (e.args[0], e.args[1]))
+        db_yen.rollback()
+        db_cart.rollback()
+db_yen.close()
+db_cart.close() 
     
-tStart = time.time()
-table2()
-tStop = time.time()
-taken = round(tStop - tStart)
-print("Done!\n")
-print("Time taken: ", round(taken//60), "(m)", round(taken%60), "(s)")        
-
-#==============================================================================
-# result = []
-# for text in check_des:
-#     B = html.unescape(text)
-#     C = strip_tags(B)
-#     rep = {"\n":"\\n", "\t": "\\t", "\xa0": " "}
-#     AA = replace_all(C, rep)
-#     str2 = ''.join(AA)
-#     result.append(str2)
-#==============================================================================
+#tStart = time.time()
+#table2()
+#tStop = time.time()
+#taken = round(tStop - tStart)
+#print("Done!\n")
+#print("Time taken: ", round(taken//60), "(m)", round(taken%60), "(s)")        
 
 # table 3
 tStart = time.time()
@@ -414,60 +402,5 @@ print("Done!\n")
 print("Time taken: ", round(taken//60), "(m)", round(taken%60), "(s)")
 print("TS = {}".format(len(TS)))
 print("VS = {}".format(len(VS)))
-
-
-    
-
-# 驗證
-#==============================================================================
-# db2 = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
-# cursor2 = db2.cursor()
-# sql = "SELECT * FROM `product_to_category` WHERE `category_id` = 365"
-# cursor2.execute(sql)
-# resu = cursor2.fetchall()
-# db2.close()
-# 
-# db1 = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
-# cursor1 = db1.cursor()
-# sql2 = "SELECT * FROM `new_product_accessory_related` WHERE `product_id` = 223"
-# cursor1.execute(sql2)
-# resu2 = cursor1.fetchall()
-# db1.close()
-#==============================================================================
-# TVS-871
-#==============================================================================
-# db1 = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
-# cursor1 = db1.cursor()
-# sql2 = "SELECT * FROM `new_product_accessory_related` WHERE `product_id` = 160"
-# cursor1.execute(sql2)
-# resu2 = cursor1.fetchall()
-# db1.close()
-#==============================================================================
-
-#==============================================================================
-# product_items = ["HS-251", "HS-251+", "TS-109 II", "TS-109 Pro II", "TS-109", "TS-109 Pro", "TS-112", "TS-112P", "TS-212", "TS-212P", "TS-212-E", "TS-239H", "TS-239 Pro", "TS-239 Pro II", "TS-239 Pro II+", "TS-420U", "TS-420", "TS-420-D", "TS-421U", "TS-421", "TS-439U-RP/ SP", "TS-459U-RP/SP", "TS-459U-RP+/SP+", "TS-469U-RP", "TS-469U-SP", "TS-470U-RP", "TS-470U-SP", "TS-EC1280U", "TS-EC1280U R2", "TS-EC1680U", "TS-EC1680U R2", "TS-EC2480U R2", "TS-EC2480U", "TS-EC880U", "TS-EC880U R2", "TVS-882ST2", "TVS-882ST3"]
-# len(product_items)
-# 
-# db_yen = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
-# #    db_yen = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="yen_nas", charset='utf8')
-# db_cart = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
-# #    db = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="open_cart", charset='utf8')
-# cursor_yen = db_yen.cursor()
-# cursor_cart = db_cart.cursor()
-# sql1 = "SELECT `id`, `shop_id`, `sku`, `image`, `ean`, `upc` FROM `new_product_accessory` WHERE `sku` = ''"
-# sql2 = "SELECT `id`, `shop_id`, `sku`, `image`, `ean`, `upc` FROM `new_product_accessory` WHERE `image` = ''"
-# cursor_yen.execute(sql1)
-# cursor_yen.execute(sql2)
-# noSku = cursor_yen.fetchall()
-# noImage = cursor_yen.fetchall()
-# db_yen.close()
-# db_cart.close()
-# 
-# db_yen = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
-# cursor_yen = db_yen.cursor()
-# sql3 = "SELECT DISTINCT `accessory_id` FROM `new_product_accessory_detail` WHERE `description` = ''"
-#==============================================================================
-
-
 
 
