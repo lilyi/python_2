@@ -8,6 +8,17 @@ Created on Tue Aug  8 10:57:25 2017
 import html, MySQLdb, time, datetime, re
 from html.parser import HTMLParser
 
+#try:
+#    db = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
+#    cursor = db.cursor()
+#    sql = "DROP TABLE IF EXISTS `new_product_accessory`, `new_product_accessory_detail`, `new_product_accessory_related`;"
+#    cursor.execute(sql)
+#    db.commit()
+#except MySQLdb.Error as e:
+#    print ("Error %d: %s" % (e.args[0], e.args[1]))
+#    db.rollback()
+#db.close()
+
 # create 3 tables
 try:
     db = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
@@ -142,18 +153,14 @@ def EAN_UPC(parsedList):
         ean, upc = 0, 0
     else:     
         if ('EAN:' in str1) or ('\\nUPC:' in str1):
-            print("HERE1")
             ean = str1.split('EAN:')[1].split('\\n')[0].strip()
             upc = str1.split('\\nUPC:')[1].split('\\n')[0].strip()
         elif ('EAN :' in str1) or ('\\nUPC :' in str1):
-            print("HERE4")
             ean = str1.split('EAN :')[1].split('\\n')[0].strip()
             upc = str1.split('\\nUPC :')[1].split('\\n')[0].strip()
         elif ('EAN' not in str1) and ('UPC' not in str1):
-            print("HERE2")
             ean, upc = 0, 0
         else:
-            print("HERE3")
             ean = str1.split('UPC:')[1].split('/')[0].strip()
             upc = str1.split('UPC:')[1].split('/')[1].strip().strip('\\n')
     return ean, upc
@@ -172,6 +179,7 @@ except MySQLdb.Error as e:
 db.close()
             
 # table 1 NEW_PRODUCT_ACCESSORY
+tStart = time.time()
 try:
     db_yen = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
 #    db_yen = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="yen_nas", charset='utf8')
@@ -185,42 +193,38 @@ try:
         pre_description = cursor_cart.fetchall()
         parsed_des = parse(pre_description[0][0])
         ean = EAN_UPC(parsed_des)[0]
-#        print(ean)
         upc = EAN_UPC(parsed_des)[1]
-#        print(upc)
-#        sku = each_product[1].strip()
-#        image = each_product[2].strip()
         published_date = time.mktime(datetime.datetime.strptime(str(each_product[3]), "%Y-%m-%d").timetuple())
         sql_check = "SELECT `shop_id`, `sku`, `image` FROM `new_product_accessory` WHERE sku = '{}'".format(str(each_product[1].strip()))
-        print(each_product[1])
+#        print(each_product[1])
         check = cursor_yen.execute(sql_check)
         res = cursor_yen.fetchall()
         if check == 1:
-#            if res[0][0].strip() != str(each_product[1].strip()):
             sql_update = "UPDATE `new_product_accessory` SET image = '{}', ean = '{}', upc = '{}', updated_at = '{}' WHERE sku = '{}'".format(str(each_product[2].strip()), int(ean), int(upc), int(time.time()), str(each_product[1].strip()))
             cursor_yen.execute(sql_update)
             db_yen.commit()
-            print("update")
+#            print("update")
         else:
             sql_insert = "INSERT INTO NEW_PRODUCT_ACCESSORY(shop_id, sku, image, ean, upc, published_at, created_at, updated_at, deleted_at)\
                VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}')".format(each_product[0], str(each_product[1].strip().upper()), str(each_product[2].strip()), int(ean), int(upc), int(published_date), int(time.time()), int(time.time()), "0")
-            print("insert")
+#            print("insert")
             cursor_yen.execute(sql_insert)
             db_yen.commit()
 
 except MySQLdb.Error as e:
-        print ("Error %d: %s" % (e.args[0], e.args[1]))
+        print("Error %d: %s" % (e.args[0], e.args[1]))
         db_yen.rollback()
         db_cart.rollback()
 db_yen.close()
 db_cart.close() 
-
+tStop = time.time()
+taken = round(tStop - tStart)
+print("Table 1/3, done!")
+print("Time taken: ", round(taken//60), "(m)", round(taken%60), "(s)") 
 
 
 # table 2
-
-#def table2():
-#    check_des = []
+tStart = time.time()
 check_parsed = []
 check_accessID = []
 try:
@@ -233,6 +237,7 @@ try:
     sql1 = "SELECT `product_id`, `language_id`, `name`, `description` FROM `product_description` ORDER BY `product_id`, `language_id`"
     cursor_cart.execute(sql1)
     product_description = cursor_cart.fetchall()
+    lan_dic = mk_lan_dic() # 應外移
     for each_pd_lan in product_description:
         pID, lanID, name, descrip_cart = each_pd_lan[0], each_pd_lan[1], each_pd_lan[2], each_pd_lan[3]  # name
         sql2 = "SELECT `model` FROM `product` WHERE `product_id` = {}".format(pID)
@@ -243,36 +248,28 @@ try:
         accessID = cursor_yen.fetchall() # id
         sql4 = "SELECT `code` FROM `language` WHERE `language_id` = {}".format(lanID)
         cursor_cart.execute(sql4)
-        lanCode = cursor_cart.fetchall()
-        lan_dic = mk_lan_dic() # 應外移
+        lanCode = cursor_cart.fetchall()     
         locale = lan_dic[lanCode[0][0]] # locale
         parsed = parse(descrip_cart)
         if parsed == "": # 驗證所以""的描述都來自於資料庫本身沒有資料 經過 parse function 的 else 出來的都是 list
             check_parsed.append(descrip_cart)
         description = descript(parsed) # description
-#            if pID == 209:
-#                print("209!")
-#                description = " "
-#            if description == "": 
-#                check_des.append(descrip_cart)
         model_front = model[0][0].strip().upper().split("-")[0]
-        notNeed = ["SP", "BBU", "SCR", "FIXER", "PWR", "KIT", "KEY", "TRAY"]
-          
+        notNeed = ["SP", "BBU", "SCR", "FIXER", "PWR", "KIT", "KEY", "TRAY"]         
         if description == "no":
-#            if model_front in notNeed:
-#                description = ""
-#            else:
-            check_accessID.append(accessID)
-            sql5 = "SELECT `description` FROM `new_product_accessory_detail` \
-            WHERE `locale` = 'en' AND `accessory_id` = {}".format(accessID[0][0])
-            cursor_yen.execute(sql5)
-            pre_description = cursor_yen.fetchall()    
-            description = pre_description[0][0]
-        
+            if model_front in notNeed:
+                description = ""
+            else:
+                check_accessID.append(accessID)
+                sql5 = "SELECT `description` FROM `new_product_accessory_detail` \
+                WHERE `locale` = 'en' AND `accessory_id` = {}".format(accessID[0][0])
+                cursor_yen.execute(sql5)
+                pre_description = cursor_yen.fetchall()    
+                description = pre_description[0][0]       
         if description == "":
-#            if model_front in notNeed:
-#                description = ""
             if pID == 144:
+                description = ""
+            elif model_front in notNeed:
                 description = ""
             else:
 #                check_accessID.append(accessID)
@@ -280,11 +277,8 @@ try:
                 WHERE `locale` = 'en' AND `accessory_id` = {}".format(accessID[0][0])
                 cursor_yen.execute(sql7)
                 pre_description = cursor_yen.fetchall()    
-                description = pre_description[0][0]
-        
+                description = pre_description[0][0]        
         if name == "":
-#            if model_front in notNeed:
-#                name = ""
             if pID == 144:
                 name = ""
             else:
@@ -303,18 +297,15 @@ try:
         cursor_yen.execute(sql_insert)
         db_yen.commit()
 except MySQLdb.Error as e:
-        print ("Error %d: %s" % (e.args[0], e.args[1]))
+        print("Error %d: %s" % (e.args[0], e.args[1]))
         db_yen.rollback()
         db_cart.rollback()
 db_yen.close()
 db_cart.close() 
-    
-#tStart = time.time()
-#table2()
-#tStop = time.time()
-#taken = round(tStop - tStart)
-#print("Done!\n")
-#print("Time taken: ", round(taken//60), "(m)", round(taken%60), "(s)")        
+tStop = time.time()
+taken = round(tStop - tStart)
+print("Table 2/3, done!")
+print("Time taken: ", round(taken//60), "(m)", round(taken%60), "(s)")        
 
 # table 3
 tStart = time.time()
@@ -364,43 +355,18 @@ try:
                 TS_SET = []
                 for i in TS:
                     TS_SET.append(i[0])
-                TSSET = set(TS_SET)
-#==============================================================================
-#                 if "420/421" in sku_name[0][0]:
-#                     print("420/421")
-#                     search_sku = [[sku_name[0][0].split("/")[0], "TS-" + sku_name[0][0].split("/")[1]]]
-#                     break;
-#                 elif "/" in sku_name[0][0]:
-#                     search_sku = [sku_name[0][0].split("/")[0].strip()]
-#                 elif "Series" in sku_name[0][0]:
-#                     search_sku = [sku_name[0][0].split(" ")[0].strip()]
-#                 else:
-#                     search_sku = [sku_name[0][0].split("U")[0].strip() + "U"]
-#                 search_sku_list.append(search_sku)
-#                 for each_sku in search_sku:
-#                     sql6 = "SELECT `ItemID` FROM `product_items` WHERE `temp_name` LIKE '%{}%'".format(each_sku) # 可能找不到對應 temp_name
-#                     cursor_yen.execute(sql6)
-#                     ItemIDs = cursor_yen.fetchall() # 
-#                     for ID in ItemIDs:
-#                         print(ID)
-#                         sql_insert = "INSERT INTO NEW_PRODUCT_ACCESSORY_RELATED(accessory_id, product_id, created_at, updated_at, deleted_at)\
-#                          VALUES ('{}', '{}', '{}', '{}', '{}') ON DUPLICATE KEY UPDATE accessory_id ='{}', product_id = '{}', updated_at='{}'"\
-#                             .format(access_id[0][0], ID[0], int(time.time()), int(time.time()), "0", access_id[0][0], ID[0], int(time.time()))
-#                         cursor_yen.execute(sql_insert)
-#                         db_yen.commit()
-#==============================================================================
-            
+                TSSET = set(TS_SET)          
 except MySQLdb.Error as e:
-        print ("Error %d: %s" % (e.args[0], e.args[1]))
+        print("Error %d: %s" % (e.args[0], e.args[1]))
         db_yen.rollback()
         db_cart.rollback()
 db_yen.close()
 db_cart.close()
 tStop = time.time()
 taken = round(tStop - tStart)
-print("Done!\n")
+print("Table 3/3, done!\n")
 print("Time taken: ", round(taken//60), "(m)", round(taken%60), "(s)")
-print("TS = {}".format(len(TS)))
-print("VS = {}".format(len(VS)))
+#print("TS = {}".format(len(TS)))
+#print("VS = {}".format(len(VS)))
 
 
