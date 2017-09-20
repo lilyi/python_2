@@ -8,63 +8,6 @@ Created on Tue Aug  8 10:57:25 2017
 import html, MySQLdb, time, datetime, re
 from html.parser import HTMLParser
 
-#try:
-#    db = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
-#    cursor = db.cursor()
-#    sql = "DROP TABLE IF EXISTS `new_product_accessory`, `new_product_accessory_detail`, `new_product_accessory_related`;"
-#    cursor.execute(sql)
-#    db.commit()
-#except MySQLdb.Error as e:
-#    print ("Error %d: %s" % (e.args[0], e.args[1]))
-#    db.rollback()
-#db.close()
-
-# create 3 tables
-try:
-    db = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
-#    db = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="yen_nas", charset='utf8')    
-    cursor = db.cursor()
-    sqls = ['''CREATE TABLE IF NOT EXISTS `new_product_accessory` (
-        `id` int(11) NOT NULL AUTO_INCREMENT,
-        `shop_id` INT(11)  NOT NULL,
-        `sku` varchar(64) DEFAULT NULL,
-        `image` varchar(255) DEFAULT NULL,
-        `ean` bigint(100) DEFAULT NULL,
-        `upc` bigint(100) DEFAULT NULL,
-        `published_at` int(11) NOT NULL DEFAULT '0',
-        `created_at` int(11) NOT NULL DEFAULT '0',
-        `updated_at` int(11) NOT NULL DEFAULT '0',
-        `deleted_at` int(11) NOT NULL DEFAULT '0',
-        PRIMARY KEY (`id`),
-        UNIQUE KEY (`sku`, `shop_id`)
-        ) ENGINE=MyISAM AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;''',
-        '''CREATE TABLE IF NOT EXISTS `new_product_accessory_detail` (
-        `accessory_id` int(11) NOT NULL,
-        `locale` varchar(5) DEFAULT NULL, #zh-tw/en-us/de-de...
-        `name` varchar(255) DEFAULT NULL,
-        `description` varchar(255) DEFAULT NULL,
-        `created_at` int(11) NOT NULL DEFAULT '0',
-        `updated_at` int(11) NOT NULL DEFAULT '0',
-        `deleted_at` int(11) NOT NULL DEFAULT '0',
-        PRIMARY KEY (`accessory_id`, `locale`)
-        ) ENGINE=MyISAM DEFAULT CHARSET=utf8;''',
-        '''CREATE TABLE IF NOT EXISTS `new_product_accessory_related` (
-        `accessory_id` int(11) NOT NULL DEFAULT '0',
-        `product_id` int(11) NOT NULL DEFAULT '0', # 官網 nas_id
-        `created_at` int(11) NOT NULL DEFAULT '0',
-        `updated_at` int(11) NOT NULL DEFAULT '0',
-        `deleted_at` int(11) NOT NULL DEFAULT '0',
-        PRIMARY KEY (`accessory_id`,`product_id`)
-        ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-        ''']
-    for i in sqls:
-        cursor.execute(i)
-        db.commit()
-except MySQLdb.Error as e:
-    print ("Error %d: %s" % (e.args[0], e.args[1]))
-    db.rollback()
-db.close()
-
 def mk_lan_dic():
     lan_list = ['en', 'zh-cn', 'de-de', 'fr-fr', 'it-it', 'zh-tw', 'nl-nl', 'ja-jp', 'en-uk', 'en-us', 'es-es', 'pt-pt', 'ru']
     code = ['en', 'cn', 'de-DE', 'fr', 'it', 'tw', 'nl', 'jp', 'UKE', 'USE', 'es', 'pt-br', 'ru']
@@ -103,10 +46,6 @@ def parse(text):
     else:
         B = html.unescape(text)
         C = strip_tags(B)
-#        if ("Description" not in C) and ("EAN" in C): # 若沒有描述的標頭則加上標頭 (此處中文內容也會加上，但在後續不影響結果)
-#            C = "Description: " + C
-#        else:
-#            C = C
         rep = {"\n":"\\n", "\t": "\\t", "\xa0": " "}
         AA = replace_all(C, rep)
         regex1 = r"(Description..|EAN:|UPC:)(.*?[A-z \/\\<>0-9].)(\\t|\\n)"
@@ -165,28 +104,53 @@ def EAN_UPC(parsedList):
             upc = str1.split('UPC:')[1].split('/')[1].strip().strip('\\n')
     return ean, upc
 
-# fetch product as a table
-try:
-#    db = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
-    db = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="opencart", charset='utf8')
-    sql = "SELECT `product_id`, `model`, `image`, `date_available` FROM `product`"
-    cursor = db.cursor()
-    cursor.execute(sql)
-    product_accessory = cursor.fetchall() # product_accessory table from product
-except MySQLdb.Error as e:
-    print ("Error %d: %s" % (e.args[0], e.args[1]))
-    db.rollback()
-db.close()
-            
-# table 1 NEW_PRODUCT_ACCESSORY
-tStart = time.time()
+# create 3 tables
 try:
     db_yen = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
-#    db_yen = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="yen_nas", charset='utf8')
-#    db_cart = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
     db_cart = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="opencart", charset='utf8')
     cursor_yen = db_yen.cursor()
     cursor_cart = db_cart.cursor()
+    # create 3 tables if not exits
+    sqls = ['''CREATE TABLE IF NOT EXISTS `new_product_accessory` (
+        `id` int(11) NOT NULL AUTO_INCREMENT,
+        `shop_id` INT(11)  NOT NULL,
+        `sku` varchar(64) DEFAULT NULL,
+        `image` varchar(255) DEFAULT NULL,
+        `ean` bigint(100) DEFAULT NULL,
+        `upc` bigint(100) DEFAULT NULL,
+        `published_at` int(11) NOT NULL DEFAULT '0',
+        `created_at` int(11) NOT NULL DEFAULT '0',
+        `updated_at` int(11) NOT NULL DEFAULT '0',
+        `deleted_at` int(11) NOT NULL DEFAULT '0',
+        PRIMARY KEY (`id`),
+        UNIQUE KEY (`sku`, `shop_id`)
+        ) ENGINE=MyISAM AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;''',
+        '''CREATE TABLE IF NOT EXISTS `new_product_accessory_detail` (
+        `accessory_id` int(11) NOT NULL,
+        `locale` varchar(5) DEFAULT NULL, #zh-tw/en-us/de-de...
+        `name` varchar(255) DEFAULT NULL,
+        `description` varchar(255) DEFAULT NULL,
+        `created_at` int(11) NOT NULL DEFAULT '0',
+        `updated_at` int(11) NOT NULL DEFAULT '0',
+        `deleted_at` int(11) NOT NULL DEFAULT '0',
+        PRIMARY KEY (`accessory_id`, `locale`)
+        ) ENGINE=MyISAM DEFAULT CHARSET=utf8;''',
+        '''CREATE TABLE IF NOT EXISTS `new_product_accessory_related` (
+        `accessory_id` int(11) NOT NULL DEFAULT '0',
+        `product_id` int(11) NOT NULL DEFAULT '0', # 官網 nas_id
+        `created_at` int(11) NOT NULL DEFAULT '0',
+        `updated_at` int(11) NOT NULL DEFAULT '0',
+        `deleted_at` int(11) NOT NULL DEFAULT '0',
+        PRIMARY KEY (`accessory_id`,`product_id`)
+        ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+        ''']
+    for i in sqls:
+        cursor_yen.execute(i)
+        db_yen.commit()
+    sql = "SELECT `product_id`, `model`, `image`, `date_available` FROM `product`"
+    cursor_cart.execute(sql)
+    product_accessory = cursor_cart.fetchall() # fetch product as a table
+    # table1
     for each_product in product_accessory:
         sql_des = "SELECT `description` FROM `product_description` WHERE product_id = {}".format(each_product[0])
         cursor_cart.execute(sql_des)
@@ -196,48 +160,22 @@ try:
         upc = EAN_UPC(parsed_des)[1]
         published_date = time.mktime(datetime.datetime.strptime(str(each_product[3]), "%Y-%m-%d").timetuple())
         sql_check = "SELECT `shop_id`, `sku`, `image` FROM `new_product_accessory` WHERE sku = '{}'".format(str(each_product[1].strip()))
-#        print(each_product[1])
         check = cursor_yen.execute(sql_check)
         res = cursor_yen.fetchall()
         if check == 1:
             sql_update = "UPDATE `new_product_accessory` SET image = '{}', ean = '{}', upc = '{}', updated_at = '{}' WHERE sku = '{}'".format(str(each_product[2].strip()), int(ean), int(upc), int(time.time()), str(each_product[1].strip()))
             cursor_yen.execute(sql_update)
             db_yen.commit()
-#            print("update")
         else:
             sql_insert = "INSERT INTO NEW_PRODUCT_ACCESSORY(shop_id, sku, image, ean, upc, published_at, created_at, updated_at, deleted_at)\
                VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}')".format(each_product[0], str(each_product[1].strip().upper()), str(each_product[2].strip()), int(ean), int(upc), int(published_date), int(time.time()), int(time.time()), "0")
-#            print("insert")
             cursor_yen.execute(sql_insert)
             db_yen.commit()
-
-except MySQLdb.Error as e:
-        print("Error %d: %s" % (e.args[0], e.args[1]))
-        db_yen.rollback()
-        db_cart.rollback()
-db_yen.close()
-db_cart.close() 
-tStop = time.time()
-taken = round(tStop - tStart)
-print("Table 1/3, done!")
-print("Time taken: ", round(taken//60), "(m)", round(taken%60), "(s)") 
-
-
-# table 2
-tStart = time.time()
-check_parsed = []
-check_accessID = []
-try:
-    db_yen = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
-#        db_yen = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="yen_nas", charset='utf8')
-#        db_cart = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
-    db_cart = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="opencart", charset='utf8')
-    cursor_yen = db_yen.cursor()
-    cursor_cart = db_cart.cursor()
+    # table2
     sql1 = "SELECT `product_id`, `language_id`, `name`, `description` FROM `product_description` ORDER BY `product_id`, `language_id`"
     cursor_cart.execute(sql1)
     product_description = cursor_cart.fetchall()
-    lan_dic = mk_lan_dic() # 應外移
+    lan_dic = mk_lan_dic()
     for each_pd_lan in product_description:
         pID, lanID, name, descrip_cart = each_pd_lan[0], each_pd_lan[1], each_pd_lan[2], each_pd_lan[3]  # name
         sql2 = "SELECT `model` FROM `product` WHERE `product_id` = {}".format(pID)
@@ -251,8 +189,6 @@ try:
         lanCode = cursor_cart.fetchall()     
         locale = lan_dic[lanCode[0][0]] # locale
         parsed = parse(descrip_cart)
-        if parsed == "": # 驗證所以""的描述都來自於資料庫本身沒有資料 經過 parse function 的 else 出來的都是 list
-            check_parsed.append(descrip_cart)
         description = descript(parsed) # description
         model_front = model[0][0].strip().upper().split("-")[0]
         notNeed = ["SP", "BBU", "SCR", "FIXER", "PWR", "KIT", "KEY", "TRAY"]         
@@ -260,34 +196,23 @@ try:
             if model_front in notNeed:
                 description = ""
             else:
-                check_accessID.append(accessID)
                 sql5 = "SELECT `description` FROM `new_product_accessory_detail` \
                 WHERE `locale` = 'en' AND `accessory_id` = {}".format(accessID[0][0])
                 cursor_yen.execute(sql5)
                 pre_description = cursor_yen.fetchall()    
                 description = pre_description[0][0]       
-        if description == "":
-            if pID == 144:
-                description = ""
-            elif model_front in notNeed:
-                description = ""
-            else:
-#                check_accessID.append(accessID)
-                sql7 = "SELECT `description` FROM `new_product_accessory_detail` \
-                WHERE `locale` = 'en' AND `accessory_id` = {}".format(accessID[0][0])
-                cursor_yen.execute(sql7)
-                pre_description = cursor_yen.fetchall()    
-                description = pre_description[0][0]        
-        if name == "":
-            if pID == 144:
-                name = ""
-            else:
-                sql6 = "SELECT `name` FROM `new_product_accessory_detail` \
-                WHERE `locale` = 'en' AND `accessory_id` = {}".format(accessID[0][0])
-                cursor_yen.execute(sql6)
-                pre_name = cursor_yen.fetchall()    
-                name = pre_name[0][0]
-#                print("pre_name: " + pre_name[0][0])
+        if description == "" and pID != 144 and model_front not in notNeed:
+            sql7 = "SELECT `description` FROM `new_product_accessory_detail` \
+            WHERE `locale` = 'en' AND `accessory_id` = {}".format(accessID[0][0])
+            cursor_yen.execute(sql7)
+            pre_description = cursor_yen.fetchall()    
+            description = pre_description[0][0]        
+        if name == "" and pID != 144:
+            sql6 = "SELECT `name` FROM `new_product_accessory_detail` \
+            WHERE `locale` = 'en' AND `accessory_id` = {}".format(accessID[0][0])
+            cursor_yen.execute(sql6)
+            pre_name = cursor_yen.fetchall()    
+            name = pre_name[0][0]
         sql_insert = "INSERT INTO NEW_PRODUCT_ACCESSORY_DETAIL(accessory_id, \
                 locale, name, description, created_at, updated_at, deleted_at)\
                 VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}') \
@@ -296,32 +221,8 @@ try:
                        int(time.time()), int(time.time()), "0", str(name), str(description), int(time.time()))
         cursor_yen.execute(sql_insert)
         db_yen.commit()
-except MySQLdb.Error as e:
-        print("Error %d: %s" % (e.args[0], e.args[1]))
-        db_yen.rollback()
-        db_cart.rollback()
-db_yen.close()
-db_cart.close() 
-tStop = time.time()
-taken = round(tStop - tStart)
-print("Table 2/3, done!")
-print("Time taken: ", round(taken//60), "(m)", round(taken%60), "(s)")        
-
-# table 3
-tStart = time.time()
-no_match = []
-TS = []
-TS_SET = []
-VS = []
-VS_SET = []
-search_sku_list = []
-try:
-    db_yen = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
-#    db_yen = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="yen_nas", charset='utf8')
-#    db_cart = MySQLdb.connect(host="localhost",user="root",passwd="root",db="open_cart", charset='utf8')
-    db_cart = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="opencart", charset='utf8')
-    cursor_yen = db_yen.cursor()
-    cursor_cart = db_cart.cursor()
+        
+    # table3
     sql1 = "SELECT `product_id`, `category_id` FROM `product_to_category`"
     cursor_cart.execute(sql1)
     product_to_category = cursor_cart.fetchall()
@@ -346,27 +247,10 @@ try:
                     .format(access_id[0][0], ItemID[0][0], int(time.time()), int(time.time()), "0", access_id[0][0], ItemID[0][0], int(time.time()))
             cursor_yen.execute(sql_insert)
             db_yen.commit()
-        else: # 紀錄 match 不到的 sku_namem 與 category_id
-            no_match.append([sku_name[0][0], category_id])
-            if sku_name[0][0].strip().upper()[0] == 'V':
-                VS.append([sku_name[0][0], category_id])
-            else:
-                TS.append([sku_name[0][0], category_id])
-                TS_SET = []
-                for i in TS:
-                    TS_SET.append(i[0])
-                TSSET = set(TS_SET)          
+      
 except MySQLdb.Error as e:
-        print("Error %d: %s" % (e.args[0], e.args[1]))
-        db_yen.rollback()
-        db_cart.rollback()
+    print("Error %d: %s" % (e.args[0], e.args[1]))
+    db_yen.rollback()
+    db_cart.rollback()
 db_yen.close()
 db_cart.close()
-tStop = time.time()
-taken = round(tStop - tStart)
-print("Table 3/3, done!\n")
-print("Time taken: ", round(taken//60), "(m)", round(taken%60), "(s)")
-#print("TS = {}".format(len(TS)))
-#print("VS = {}".format(len(VS)))
-
-
