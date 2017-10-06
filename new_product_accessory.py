@@ -129,7 +129,7 @@ try:
     cursor_yen = db_yen.cursor()
     cursor_cart = db_cart.cursor()
     # create 3 tables if not exits
-    print("Create 3 tables")
+    print("Creating 3 tables...")
     sqls = ['''CREATE TABLE IF NOT EXISTS `new_product_accessory` (
         `id` int(11) NOT NULL AUTO_INCREMENT,
         `shop_id` INT(11)  NOT NULL,
@@ -166,7 +166,7 @@ try:
     for i in sqls:
         cursor_yen.execute(i)
         db_yen.commit()
-    print("Update table 1")
+    print("Updating table 1...")
     sql = "SELECT `product_id`, `model`, `image`, `date_available` FROM `product`"
     cursor_cart.execute(sql)
     product_accessory = cursor_cart.fetchall() # fetch product as a table
@@ -192,7 +192,7 @@ try:
             cursor_yen.execute(sql_insert)
             db_yen.commit()
     # table2
-    print("Update table 2")
+    print("Updating table 2...")
     sql1 = "SELECT `product_id`, `language_id`, `name`, `description` FROM `product_description` ORDER BY `product_id`, `language_id`"
     cursor_cart.execute(sql1)
     product_description = cursor_cart.fetchall()
@@ -252,7 +252,7 @@ try:
         db_yen.commit()
         
     # table3
-    print("Update table 3")
+    print("Updating table 3...")
     sql1 = "SELECT `product_id`, `category_id` FROM `product_to_category`"
     cursor_cart.execute(sql1)
     product_to_category = cursor_cart.fetchall()
