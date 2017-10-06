@@ -4,9 +4,13 @@ Created on Tue Aug  8 10:57:25 2017
 
 @author: Lily
 """
+from subprocess import check_output
+check_output("pip install -r requirements.txt", shell=True)
 
 import html, MySQLdb, time, datetime, re
 from html.parser import HTMLParser
+
+tStart = time.time()
 
 def mk_lan_dic():
     lan_list = ['en', 'zh-cn', 'de-de', 'fr-fr', 'it-it', 'zh-tw', 'nl-nl', 'ja-jp', 'en-uk', 'en-us', 'es-es', 'pt-pt', 'ru']
@@ -47,11 +51,11 @@ def parse(text):
         B = html.unescape(text)
         C = strip_tags(B)
         rep = {"\n":"\\n", "\t": "\\t", "\xa0": " "}
-        AA = replace_all(C, rep)
-        regex1 = r"(Description..|EAN:|UPC:)(.*?[A-z \/\\<>0-9].)(\\t|\\n)"
-        regex2 = r"(描述..|EAN.:|UPC.:)(.*?[A-z \/\\<>0-9].)(\\t|\\n)"
-        regex3 = r"(Description..|EAN:|UPC:|EAN / UPC:|EAN/UPC:)(.*?[A-z \/\\<>0-9].)(\\t|\\n)"
-        regex4 = r"(Description..|EAN :|UPC :)(.*?[A-z \/\\<>0-9].)(\\t|\\n)"
+        AA = replace_all(C, rep) + "\\n"
+        regex1 = r"(Description..|EAN:|UPC:|NOTICE:)(.*?[A-z \/\\<>0-9].)(\\t|\\n|<\/p>)"
+        regex2 = r"(描述..|EAN.:|UPC.:|NOTICE:)(.*?[A-z \/\\<>0-9].)(\\t|\\n)"
+        regex3 = r"(Description..|EAN:|UPC:|EAN / UPC:|EAN/UPC:|NOTICE:)(.*?[A-z \/\\<>0-9].)(\\t|\\n)"
+        regex4 = r"(Description..|EAN :|UPC :|NOTICE:)(.*?[A-z \/\\<>0-9].)(\\t|\\n)"
         if ("描述" in text) or ("國際條碼" in text) or ("統一商品條碼" in text):
             regex = regex2
         elif ("EAN / UPC" in text) or ("EAN/UPC" in text):
@@ -101,16 +105,31 @@ def EAN_UPC(parsedList):
             ean, upc = 0, 0
         else:
             ean = str1.split('UPC:')[1].split('/')[0].strip()
-            upc = str1.split('UPC:')[1].split('/')[1].strip().strip('\\n')
+            upc = str1.split('UPC:')[1].split('/')[1].split('\r')[0].strip()
     return ean, upc
 
+def NOTICE(parsedList):
+    temp = parsedList[:]
+    str1 = ''.join(temp)
+    if parsedList == "":
+        return ""
+    else:
+        if "NOTICE" in str1:
+            notice = str1.split("NOTICE:")[1].split("\\n")[0].strip()
+        else:
+            notice = ""
+        return notice
+
 # create 3 tables
+
 try:
+    print("Connecting database...")
     db_yen = MySQLdb.connect(host="localhost",user="root",passwd="root",db="yen_nas", charset='utf8')
     db_cart = MySQLdb.connect(host="10.8.2.125", user="marketing_query", passwd="WStFfFDSrzzdEQFW", db="opencart", charset='utf8')
     cursor_yen = db_yen.cursor()
     cursor_cart = db_cart.cursor()
     # create 3 tables if not exits
+    print("Create 3 tables")
     sqls = ['''CREATE TABLE IF NOT EXISTS `new_product_accessory` (
         `id` int(11) NOT NULL AUTO_INCREMENT,
         `shop_id` INT(11)  NOT NULL,
@@ -147,6 +166,7 @@ try:
     for i in sqls:
         cursor_yen.execute(i)
         db_yen.commit()
+    print("Update table 1")
     sql = "SELECT `product_id`, `model`, `image`, `date_available` FROM `product`"
     cursor_cart.execute(sql)
     product_accessory = cursor_cart.fetchall() # fetch product as a table
@@ -167,14 +187,22 @@ try:
             cursor_yen.execute(sql_update)
             db_yen.commit()
         else:
-            sql_insert = "INSERT INTO NEW_PRODUCT_ACCESSORY(shop_id, sku, image, ean, upc, published_at, created_at, updated_at, deleted_at)\
+            sql_insert = "INSERT INTO new_product_accessory(shop_id, sku, image, ean, upc, published_at, created_at, updated_at, deleted_at)\
                VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}')".format(each_product[0], str(each_product[1].strip().upper()), str(each_product[2].strip()), int(ean), int(upc), int(published_date), int(time.time()), int(time.time()), "0")
             cursor_yen.execute(sql_insert)
             db_yen.commit()
     # table2
+    print("Update table 2")
     sql1 = "SELECT `product_id`, `language_id`, `name`, `description` FROM `product_description` ORDER BY `product_id`, `language_id`"
     cursor_cart.execute(sql1)
     product_description = cursor_cart.fetchall()
+    sql_check = "SHOW COLUMNS FROM `new_product_accessory_detail` LIKE 'notice';"
+    check = cursor_yen.execute(sql_check)
+    res_check = cursor_yen.fetchall()
+    if res_check == (): # add colume `notice` if not exit
+        sql_add = "ALTER TABLE `new_product_accessory_detail` ADD `notice` varchar(255) DEFAULT NULL AFTER `description`"
+        cursor_yen.execute(sql_add)
+        db_yen.commit()
     lan_dic = mk_lan_dic()
     for each_pd_lan in product_description:
         pID, lanID, name, descrip_cart = each_pd_lan[0], each_pd_lan[1], each_pd_lan[2], each_pd_lan[3]  # name
@@ -190,6 +218,7 @@ try:
         locale = lan_dic[lanCode[0][0]] # locale
         parsed = parse(descrip_cart)
         description = descript(parsed) # description
+        notice = NOTICE(parsed) # important notice
         model_front = model[0][0].strip().upper().split("-")[0]
         notNeed = ["SP", "BBU", "SCR", "FIXER", "PWR", "KIT", "KEY", "TRAY"]         
         if description == "no":
@@ -213,16 +242,17 @@ try:
             cursor_yen.execute(sql6)
             pre_name = cursor_yen.fetchall()    
             name = pre_name[0][0]
-        sql_insert = "INSERT INTO NEW_PRODUCT_ACCESSORY_DETAIL(accessory_id, \
-                locale, name, description, created_at, updated_at, deleted_at)\
-                VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}') \
-                ON DUPLICATE KEY UPDATE name='{}', description = '{}',  updated_at='{}'"\
-               .format(accessID[0][0], str(locale), str(name), str(description), \
-                       int(time.time()), int(time.time()), "0", str(name), str(description), int(time.time()))
+        sql_insert = "INSERT INTO new_product_accessory_detail(accessory_id, \
+                locale, name, description, notice, created_at, updated_at, deleted_at)\
+                VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}') \
+                ON DUPLICATE KEY UPDATE name='{}', description = '{}', notice = '{}',  updated_at='{}'"\
+               .format(accessID[0][0], str(locale), str(name), str(description), str(notice), \
+                       int(time.time()), int(time.time()), "0", str(name), str(description), str(notice), int(time.time()))
         cursor_yen.execute(sql_insert)
         db_yen.commit()
         
     # table3
+    print("Update table 3")
     sql1 = "SELECT `product_id`, `category_id` FROM `product_to_category`"
     cursor_cart.execute(sql1)
     product_to_category = cursor_cart.fetchall()
@@ -242,7 +272,7 @@ try:
         cursor_yen.execute(sql5)
         ItemID = cursor_yen.fetchall() # productID 可能為 ''
         if len(ItemID) != 0:
-            sql_insert = "INSERT INTO NEW_PRODUCT_ACCESSORY_RELATED(accessory_id, product_id, created_at, updated_at, deleted_at)\
+            sql_insert = "INSERT INTO new_product_accessory_related(accessory_id, product_id, created_at, updated_at, deleted_at)\
              VALUES ('{}', '{}', '{}', '{}', '{}') ON DUPLICATE KEY UPDATE accessory_id ='{}', product_id = '{}', updated_at='{}'"\
                     .format(access_id[0][0], ItemID[0][0], int(time.time()), int(time.time()), "0", access_id[0][0], ItemID[0][0], int(time.time()))
             cursor_yen.execute(sql_insert)
@@ -254,3 +284,8 @@ except MySQLdb.Error as e:
     db_cart.rollback()
 db_yen.close()
 db_cart.close()
+
+tStop = time.time()
+taken = round(tStop - tStart)
+print("Done!\n")
+print("Time taken: ", round(taken//60), "(m)", round(taken%60), "(s)")
