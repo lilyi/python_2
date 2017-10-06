@@ -82,7 +82,7 @@ def get_ga_pageviews(credentials, stime,country):# , lan, type_name, slug):
     try:
         service = create_service_object(credentials) #The service object built by the Google API Python client library.
         return service.data().ga().get(
-                ids='ga:3035421',
+                ids='ga:117842049',
                 start_date=stime,
                 end_date="yesterday",
                 metrics="ga:sessions,ga:pageViews,ga:bounceRate, ga:avgSessionDuration",
@@ -192,13 +192,18 @@ for country in countries:
     results = get_ga_pageviews(credentials, "2017-01-01", country)
     rowsSet.append(results)
 for rowCountry in rowsSet:
-    rowCountry = rowsSet[0]
+    rowCountry = rowsSet[0] ##
     countryName = rowCountry.get('query').get('segment').split("@")[1]
     allRows = rowCountry.get('rows')
     date, sessions = [], []
     for row in allRows:
         date.append(datetime.datetime.strptime(row[0], "%Y%m%d").date())
         sessions.append(int(row[1]))
+    plt.plot(date, sessions)
+    plt.xlabel("Time")
+    plt.ylabel("Sessions")
+    plt.show()    
+    ####   1006
     df = pd.DataFrame({"Date":date, "Sessions" : sessions})
 #    df["Date"] = date
 #    df["Sessions"] = sessions
@@ -224,7 +229,7 @@ def plotLine(rowsSet):
     rows = results.get('rows') # ga:sessions,ga:pageViews,ga:bounceRate, ga:avgSessionDuration
     
     date = datetime.datetime.strptime(row[0],"%Y%m%d")
-        res.append() 
+    res.append() 
     date, sessions, pageViews, bounceRate, avgSessionsDuration = [], [], [], [], [], []
     for row in rows:
         date.append(datetime.datetime.strptime(row[0],"%Y%m%d"))
