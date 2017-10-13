@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import matplotlib.dates as mdates
 import numpy as np
+import csv
 
 from sklearn.linear_model import LinearRegression
 import sys
@@ -185,26 +186,96 @@ sessions_df = pd.DataFrame(
 )
 #fig, ax = plt.subplots()
 #ax = sns.pointplot(data = sessions_df, x="Date", y="Sessions", ax=ax)
-countries = ["Australia", "Austria", "Belgium", "Canada", "Czechia", "Denmark", "France", "Germany", "Greece", "Hong Kong", "Hungary", "India", "Iran", "Israel", "Italy", "Japan", "Mexico", "Netherlands", "Norway", "Poland", "Portugal", "Romania", "South Africa", "South Korea", "Spain", "Sweden", "Switzerland", "Taiwan", "Thailand", "Turkey", "United Kingdom", "United States"]
-credentials = acquire_oauth2_credentials()
-rowsSet = []
-for country in countries:
-    results = get_ga_pageviews(credentials, "2017-01-01", country)
-    rowsSet.append(results)
-for rowCountry in rowsSet:
-    rowCountry = rowsSet[0] ##
-    countryName = rowCountry.get('query').get('segment').split("@")[1]
-    allRows = rowCountry.get('rows')
-    date, sessions = [], []
-    for row in allRows:
-        date.append(datetime.datetime.strptime(row[0], "%Y%m%d").date())
-        sessions.append(int(row[1]))
-    plt.plot(date, sessions)
+def makeFile(gaMatrix):
+    countries = ["Australia", "Austria", "Belgium", "Canada", "Czechia", "Denmark", "France", "Germany", "Greece", "Hong Kong", "Hungary", "India", "Iran", "Israel", "Italy", "Japan", "Mexico", "Netherlands", "Norway", "Poland", "Portugal", "Romania", "South Africa", "South Korea", "Spain", "Sweden", "Switzerland", "Taiwan", "Thailand", "Turkey", "United Kingdom", "United States"]
+    credentials = acquire_oauth2_credentials()
+    rowsSet = []
+    for country in countries:
+        results = get_ga_pageviews(credentials, "2017-01-01", country)
+        rowsSet.append(results)
+
+    for rowCountry in rowsSet:
+#        rowCountry = rowsSet[0] ##
+        countryName = rowCountry.get('query').get('segment').split("@")[1]
+        allRows = rowCountry.get('rows')# ga:sessions,ga:pageViews,ga:bounceRate, ga:avgSessionDuration
+#        date, sessions, pageViews, bounceRate, avgSessionsDuration = [], [], [], [], []
+        df = []
+        for row in allRows:
+            date = datetime.datetime.strptime(row[0], "%Y%m%d").date()
+            sessions, pageViews, bounceRate, avgSessionsDuration = int(row[1]), int(row[2]), int(row[3], int(row[4]))
+            df.append([date, sessions, pageViews, bounceRate, avgSessionsDuration])
+        with open('{}.csv'.format(countryName), 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(["date","sessions", "pageViews", "bounceRate", "avgSessionsDuration"])
+            writer.writerows(df)
+makeFile()
+def plot
+dataframe = {'date':[], 'sessions':[]}
+with open('{}.csv'.format(countries[0]), 'r') as fp:
+    data = csv.reader(fp)
+    next(data)
+    for row in data:       
+        dataframe['date'].append(datetime.datetime.strptime(row[0], "%Y-%m-%d").date())  
+        dataframe['sessions'].append(row[1]) 
+    dataframe['sessions'] = list(map(int, dataframe['sessions']))
+    df = pd.DataFrame(dataframe['sessions'], index = dataframe['date'], columns = ['sessions'])
+#    df = df.set_index('date')
+    regression = pd.ols(y=dataframe['sessions'], x=range(len(df)))
+    z = np.polyfit(range(len(df)), dataframe['sessions'], 1)
+    p = np.poly1d(z) # y=p[0]+p[1]*x
+    fig, ax = plt.subplots()
+    ax.plot(df, label='sessions')
+    ax.plot(dataframe['date'], p(range(len(df))), label='trend')
+#    ax.legend()
+    legend = ax.legend(shadow=True, fontsize='x-large')
+    legend.get_frame().set_facecolor('#00FFCC')
+#    ax.set(xlabel='Time', ylabel='Sessions', title=countries[0])
+    ax.set_xlabel('Time', fontsize=15)
+    ax.set_ylabel('Sessions', fontsize=15)
+    ax.set_title(countries[0], fontsize=15)
+    ax.grid(True)
+    fig.savefig("{}.png".format(countries[0]))
+#    fig.tight_layout()   
+    plt.show()
+    
+#    plt.xlabel("Time")
+#    plt.ylabel("Sessions")
+#    plt.title(countryName)
+
+    
+    df.resample("5d").mean().head()
+    
+    coefficients, residuals, _, _, _ = np.polyfit(np.array(range(len(df.index))),df['sessions'],1)
+    plt.plot([coefficients[0]*x + coefficients[1] for x in range(len(df))])
+results = list(map(int, results))
+    z = np.polyfit(x, y, 1)
+p = numpy.poly1d(z)
+pylab.plot(x,p(x),"r--")
+# the line equation:
+print "y=%.6fx+(%.6f)"%(z[0],z[1])
+
+    df3 = df3.set_index('date')    
+        
+    df3 = pd.DataFrame(dataframe, columns=['sessions'])
+    df3['date'] =  pd.to_datetime(df3['date'], format='%Y-%m-%d')
+    
+    x = df3.ix[:,0]
+    y = df3.ix[:,1]
+    a = np.array(df3)
+    s = pd.Series(df)
+    plt.plot(df)
+    plt.plot(rolmean)  
+    rolmean = pd.rolling_mean(df, window=4)
     plt.xlabel("Time")
     plt.ylabel("Sessions")
+    plt.title(countryName)
+    fit = np.polyfit(date,sessions,1)
+    fit_fn = np.poly1d(fit) 
     plt.show()    
     ####   1006
     df = pd.DataFrame({"Date":date, "Sessions" : sessions})
+    df['MA'] = df.rolling(window=4).mean()
+
 #    df["Date"] = date
 #    df["Sessions"] = sessions
     f, ax = plt.subplots(1, 1)
