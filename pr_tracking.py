@@ -1,13 +1,16 @@
+import os
 from subprocess import check_output
+os.chdir("C:\\Users\\Lily\\Documents\\GitHub\\python_2")
+file_path = os.getcwd()
 check_output("pip install -r requirements.txt", shell=True)
-import os, MySQLdb, httplib2, webbrowser, sys
+import MySQLdb, httplib2, webbrowser, sys
+import time
 from datetime import datetime, date, time, timedelta
 from googleapiclient.errors import HttpError
 from oauth2client.client import AccessTokenRefreshError
 from oauth2client import client
 from apiclient import discovery
 
-file_path = os.getcwd()
 
 def acquire_oauth2_credentials():
     """
@@ -62,6 +65,8 @@ def get_ga_pageviews(credentials, stime, locale, slug):  # , lan, type_name, slu
     try:
         end_date = datetime.strptime(stime, '%Y-%m-%d') + timedelta(days=30)
         etime = end_date.strftime('%Y-%m-%d')
+        if end_date > datetime.today():
+            etime = "yesterday"
         service = create_service_object(
             credentials)  # The service object built by the Google API Python client library.
         return service.data().ga().get(
@@ -106,6 +111,11 @@ try:
                 for r in rows:
                     pg += int(r[2])
         print(pg)
+        sql_update = "UPDATE `mydata_pr_list` SET `pageview` = '{a}', update_at = '{b}' WHERE `id` = '{c}'"\
+            .format(a=pg, b=datetime.now().strftime('%Y-%m-%d'), c=pr[0])
+        cursor_web_analytics.execute(sql_update)
+        db_web_analytics.commit()
+
 
 except MySQLdb.Error as e:
     print("Error %d: %s" % (e.args[0], e.args[1]))
